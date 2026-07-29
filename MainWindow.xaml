@@ -1,0 +1,186 @@
+<Window x:Class="Borderus.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Borderus" Icon="assets/Borderus.ico" Width="900" SizeToContent="Height"
+        ResizeMode="NoResize" Background="{StaticResource PageBrush}"
+        WindowStartupLocation="CenterScreen" FontFamily="Segoe UI" UseLayoutRounding="True">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Grid Margin="28,22,28,14">
+      <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+      <StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Borderus" FontSize="28" FontWeight="Light" />
+          <TextBlock x:Name="VersionText" FontSize="12" Foreground="#FF8E8E8E" Margin="9,0,0,4" VerticalAlignment="Bottom" />
+        </StackPanel>
+        <TextBlock Text="Рамки для всех окон" FontSize="14" Foreground="#FFAAAAAA" Margin="1,3,0,0" />
+      </StackPanel>
+      <CheckBox x:Name="EnabledCheckBox" Grid.Column="1" Content="Включено" VerticalAlignment="Center"
+                IsChecked="True" Checked="SettingChanged" Unchecked="SettingChanged" />
+    </Grid>
+
+    <TabControl Grid.Row="1" Margin="28,0,28,10">
+      <TabItem Header="Рамки">
+        <Grid Margin="12">
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+          <Border Background="{StaticResource CardBrush}" BorderBrush="#FF454545" BorderThickness="1" Padding="14" Margin="0,0,0,12">
+            <StackPanel>
+              <TextBlock Text="Предпросмотр" FontSize="18" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,10,0">
+                  <TextBlock Text="Активное окно" HorizontalAlignment="Center" Foreground="#FFAAAAAA" FontSize="13" />
+                  <Grid Width="230" Height="112" Margin="0,3,0,0">
+                    <Grid.RowDefinitions><RowDefinition Height="20" /><RowDefinition /><RowDefinition Height="20" /></Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
+                    <CheckBox x:Name="ActiveTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Active,Top" ToolTip="Верхняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="ActiveLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Active,Left" ToolTip="Левая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <Grid x:Name="ActivePreviewHost" Grid.Row="1" Grid.Column="1" Background="#FF171717" ClipToBounds="True">
+                      <Grid.RowDefinitions><RowDefinition Height="22" /><RowDefinition /></Grid.RowDefinitions>
+                      <Border Background="#FF075A9E" /><TextBlock Text="Активное" Margin="8,0" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Row="1" Text="Содержимое окна" Foreground="#FF777777" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                    </Grid>
+                    <CheckBox x:Name="ActiveRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Active,Right" ToolTip="Правая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="ActiveBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Active,Bottom" ToolTip="Нижняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                  </Grid>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                  <TextBlock Text="Неактивное окно" HorizontalAlignment="Center" Foreground="#FFAAAAAA" FontSize="13" />
+                  <Grid Width="230" Height="112" Margin="0,3,0,0">
+                    <Grid.RowDefinitions><RowDefinition Height="20" /><RowDefinition /><RowDefinition Height="20" /></Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
+                    <CheckBox x:Name="InactiveTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Inactive,Top" ToolTip="Верхняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="InactiveLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Inactive,Left" ToolTip="Левая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <Grid x:Name="InactivePreviewHost" Grid.Row="1" Grid.Column="1" Background="#FF171717" ClipToBounds="True">
+                      <Grid.RowDefinitions><RowDefinition Height="22" /><RowDefinition /></Grid.RowDefinitions>
+                      <Border Background="#FF414141" /><TextBlock Text="Неактивное" Margin="8,0" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Row="1" Text="Содержимое окна" Foreground="#FF777777" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                    </Grid>
+                    <CheckBox x:Name="InactiveRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Inactive,Right" ToolTip="Правая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="InactiveBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Inactive,Bottom" ToolTip="Нижняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                  </Grid>
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Border Background="{StaticResource CardBrush}" BorderBrush="#FF454545" BorderThickness="1" Padding="18" Margin="0,0,8,0">
+              <StackPanel>
+                <TextBlock Text="Внешний вид" FontSize="18" Margin="0,0,0,12" />
+                <TextBlock Text="Настройки для" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" />
+                <ComboBox x:Name="ProfileCombo" SelectionChanged="ProfileChanged" PreviewMouseWheel="ComboBoxMouseWheel" Margin="0,0,0,12">
+                  <ComboBoxItem Content="Активного окна" Tag="Active" /><ComboBoxItem Content="Неактивных окон" Tag="Inactive" />
+                </ComboBox>
+                <Grid Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Толщина" FontSize="13" Foreground="#FFAAAAAA" />
+                    <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions>
+                      <Slider x:Name="ThicknessSlider" Minimum="1" Maximum="30" Value="1" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" />
+                      <TextBlock x:Name="ThicknessValue" Grid.Column="1" Text="1 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Скругление" FontSize="13" Foreground="#FFAAAAAA" />
+                    <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions>
+                      <Slider x:Name="RadiusSlider" Minimum="0" Maximum="40" Value="4" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" />
+                      <TextBlock x:Name="RadiusValue" Grid.Column="1" Text="4 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                  </StackPanel>
+                </Grid>
+                <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Линия" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" />
+                    <ComboBox x:Name="LineStyleCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="Сплошная" Tag="Solid" /><ComboBoxItem Content="Пунктир" Tag="Dashed" /><ComboBoxItem Content="Точки" Tag="Dotted" /></ComboBox></StackPanel>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Заливка" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" />
+                    <ComboBox x:Name="FillStyleCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="Один цвет" Tag="Solid" /><ComboBoxItem Content="Наружу в прозрачный" Tag="FadeEdges" /><ComboBoxItem Content="Градиент по линии" Tag="AlongLine" /></ComboBox></StackPanel>
+                </Grid>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Цвет линии" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" /><Button x:Name="PrimaryColorButton" Click="ChoosePrimaryColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="PrimarySwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="PrimaryColorText" /></StackPanel></Button></StackPanel>
+                  <StackPanel x:Name="SecondaryColorPanel" Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Второй цвет" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" /><Button x:Name="SecondaryColorButton" Click="ChooseSecondaryColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="SecondarySwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="SecondaryColorText" /></StackPanel></Button></StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+            <Border Background="{StaticResource CardBrush}" BorderBrush="#FF454545" BorderThickness="1" Padding="18" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="Движение" FontSize="18" Margin="0,0,0,14" />
+                <CheckBox x:Name="AnimateCheckBox" Content="Анимировать пунктир" Checked="SettingChanged" Unchecked="SettingChanged" />
+                <CheckBox x:Name="AnimateGradientCheckBox" Content="Анимировать градиент" Margin="0,8,0,0" Checked="SettingChanged" Unchecked="SettingChanged" />
+                <Grid x:Name="AnimationOptions" Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Направление" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" /><ComboBox x:Name="DirectionCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="По часовой" Tag="Clockwise" /><ComboBoxItem Content="Против часовой" Tag="CounterClockwise" /></ComboBox></StackPanel>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Скорость" FontSize="13" Foreground="#FFAAAAAA" /><Slider x:Name="SpeedSlider" Minimum="0.25" Maximum="40" Value="1" TickFrequency="0.25" ValueChanged="SettingChanged" Margin="0,8,0,0" /></StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <Border Background="{StaticResource CardBrush}" BorderBrush="#FF454545" BorderThickness="1" Padding="18">
+              <StackPanel>
+                <TextBlock Text="Окна администратора" FontSize="18" Margin="0,0,0,12" />
+                <TextBlock Text="Отдельные цвета рамок" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,8" />
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,8,0">
+                    <CheckBox x:Name="ActiveElevatedColorCheckBox" Content="Активное" Tag="Active" Checked="ElevatedColorSettingChanged" Unchecked="ElevatedColorSettingChanged" Margin="0,0,0,5" />
+                    <Button x:Name="ActiveElevatedColorButton" Tag="Active" Click="ChooseElevatedColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="ActiveElevatedSwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="ActiveElevatedColorText" /></StackPanel></Button>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                    <CheckBox x:Name="InactiveElevatedColorCheckBox" Content="Неактивное" Tag="Inactive" Checked="ElevatedColorSettingChanged" Unchecked="ElevatedColorSettingChanged" Margin="0,0,0,5" />
+                    <Button x:Name="InactiveElevatedColorButton" Tag="Inactive" Click="ChooseElevatedColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="InactiveElevatedSwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="InactiveElevatedColorText" /></StackPanel></Button>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Флаг раскладки">
+        <Grid Margin="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+          <Border Background="{StaticResource CardBrush}" BorderBrush="#FF454545" BorderThickness="1" Padding="22" Margin="0,0,8,0">
+            <StackPanel>
+              <TextBlock Text="Флаг раскладки" FontSize="20" Margin="0,0,0,16" />
+              <CheckBox x:Name="LayoutIndicatorCheckBox" Content="Показывать индикатор" Checked="SettingChanged" Unchecked="SettingChanged" />
+              <StackPanel x:Name="LayoutIndicatorOptions" Margin="0,16,0,0">
+                <TextBlock Text="Содержимое" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" />
+                <ComboBox x:Name="LayoutContentCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="Только флаг" Tag="FlagOnly" /><ComboBoxItem Content="Флаг и RU / EN" Tag="FlagAndCode" /></ComboBox>
+                <CheckBox x:Name="LayoutContainerCheckBox" Content="Показывать контейнер" Margin="0,12,0,0" Checked="SettingChanged" Unchecked="SettingChanged" />
+                <TextBlock Text="Привязка" FontSize="13" Foreground="#FFAAAAAA" Margin="0,14,0,4" />
+                <ComboBox x:Name="LayoutAnchorCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="К полю ввода" Tag="Field" /><ComboBoxItem Content="Всегда к каретке" Tag="Caret" /></ComboBox>
+                <Grid Margin="0,16,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Размер" FontSize="13" Foreground="#FFAAAAAA" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions><Slider x:Name="LayoutSizeSlider" Minimum="10" Maximum="80" Value="32" TickFrequency="2" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutSizeValue" Grid.Column="1" Text="32" HorizontalAlignment="Right" /></Grid></StackPanel>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Прозрачность" FontSize="13" Foreground="#FFAAAAAA" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions><Slider x:Name="LayoutOpacitySlider" Minimum="0.2" Maximum="1" Value="0.9" TickFrequency="0.05" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutOpacityValue" Grid.Column="1" Text="90%" HorizontalAlignment="Right" /></Grid></StackPanel>
+                </Grid>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border x:Name="LayoutPositionOptions" Grid.Column="1" Background="{StaticResource CardBrush}" BorderBrush="#FF454545" BorderThickness="1" Padding="22" Margin="8,0,0,0">
+            <StackPanel>
+              <TextBlock Text="Позиционирование" FontSize="20" Margin="0,0,0,10" />
+              <TextBlock Text="Выберите сторону относительно поля или каретки" Foreground="#FFAAAAAA" FontSize="13" />
+              <Grid x:Name="LayoutSideSelector" Width="280" Height="170" Margin="0,18,0,12">
+                <Grid.RowDefinitions><RowDefinition Height="34" /><RowDefinition /><RowDefinition Height="34" /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions>
+                <CheckBox x:Name="LayoutTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Top" ToolTip="Сверху" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+                <CheckBox x:Name="LayoutLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Left" ToolTip="Слева" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+                <Border Grid.Row="1" Grid.Column="1" Background="#FF171717" BorderBrush="#FF555555" BorderThickness="1"><StackPanel VerticalAlignment="Center"><TextBlock Text="Поле ввода" HorizontalAlignment="Center" Foreground="#FFAAAAAA" /><Border Background="#FF164F78" CornerRadius="4" Padding="10,5" HorizontalAlignment="Center" Margin="0,8,0,0"><TextBlock Text="🇷🇺 RU" /></Border></StackPanel></Border>
+                <CheckBox x:Name="LayoutRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Right" ToolTip="Справа" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+                <CheckBox x:Name="LayoutBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Bottom" ToolTip="Снизу" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+              </Grid>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,8,0"><TextBlock Text="Смещение X" FontSize="13" Foreground="#FFAAAAAA" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Slider x:Name="LayoutOffsetXSlider" Minimum="-100" Maximum="100" Value="8" TickFrequency="1" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutOffsetXValue" Grid.Column="1" Text="8" HorizontalAlignment="Right" /></Grid></StackPanel>
+                <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Смещение Y" FontSize="13" Foreground="#FFAAAAAA" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Slider x:Name="LayoutOffsetYSlider" Minimum="-100" Maximum="100" Value="0" TickFrequency="1" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutOffsetYValue" Grid.Column="1" Text="0" HorizontalAlignment="Right" /></Grid></StackPanel>
+              </Grid>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+    </TabControl>
+
+    <Grid Grid.Row="2" Margin="28,8,28,20"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+      <TextBlock Text="Закрытие сворачивает приложение в трей" Foreground="#FFAAAAAA" FontSize="12" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Content="Скрыть в трей" Click="HideToTray" Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="{StaticResource AccentBrush}" />
+    </Grid>
+  </Grid>
+</Window>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets\Borderus.ico</ApplicationIcon>
+    <AssemblyName>Borderus</AssemblyName>
+    <RootNamespace>Borderus</RootNamespace>
+    <Version>1.2.12</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="assets\Borderus.ico" />
+  </ItemGroup>
+</Project>
