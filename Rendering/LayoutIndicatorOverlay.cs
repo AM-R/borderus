@@ -101,6 +101,8 @@ internal sealed class LayoutIndicatorOverlay : Window
 
         int width = (int)Math.Ceiling(logicalWidth * dpiScale);
         int height = (int)Math.Ceiling(logicalSize * dpiScale);
+        if (_visible && Math.Abs(x - _lastX) <= 1) x = _lastX;
+        if (_visible && Math.Abs(y - _lastY) <= 1) y = _lastY;
         if (!_visible || x != _lastX || y != _lastY || width != _lastWidth || height != _lastHeight)
         {
             NativeMethods.SetWindowPos(_handle, new nint(-1), x, y, width, height,

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Windows.Automation;
 using System.Windows.Threading;
 using Borderus.Models;
 using Borderus.Native;
@@ -78,20 +79,23 @@ internal sealed class LayoutIndicatorService : IDisposable
         nint foreground = NativeMethods.GetForegroundWindow();
         uint threadId = NativeMethods.GetWindowThreadProcessId(foreground, out _);
         var info = new NativeMethods.GuiThreadInfo { Size = Marshal.SizeOf<NativeMethods.GuiThreadInfo>() };
-        if (threadId == 0 || !NativeMethods.GetGUIThreadInfo(threadId, ref info) || info.CaretWindow == 0)
+        if (threadId == 0)
         {
             _overlay.HideImmediately();
             return;
         }
 
-        if (!TryGetCaretRect(info, out NativeMethods.Rect caretRect))
+        bool hasGuiInfo = NativeMethods.GetGUIThreadInfo(threadId, ref info);
+        NativeMethods.Rect caretRect = default;
+        bool hasCaret = hasGuiInfo && info.CaretWindow != 0 && TryGetCaretRect(info, out caretRect);
+        if (!hasCaret && !TryGetAutomationRect(out caretRect))
         {
             _overlay.HideImmediately();
             return;
         }
 
         NativeMethods.Rect anchorRect = caretRect;
-        if (_settings.Anchor == LayoutIndicatorAnchor.Field && info.FocusWindow != 0 &&
+        if (_settings.Anchor == LayoutIndicatorAnchor.Field && hasGuiInfo && info.FocusWindow != 0 &&
             info.FocusWindow != foreground && NativeMethods.GetWindowRect(info.FocusWindow, out var focusRect) &&
             focusRect.Width >= 40 && focusRect.Height >= 14)
             anchorRect = focusRect;
@@ -115,9 +119,7 @@ internal sealed class LayoutIndicatorService : IDisposable
         int offsetY = (int)Math.Round(Math.Clamp(_settings.OffsetY, -100, 100) * scale);
         int centerX = anchor.Left + (anchor.Width - width) / 2;
         int centerY = anchor.Top + (anchor.Height - height) / 2;
-        LayoutIndicatorSide side = _settings.Anchor == LayoutIndicatorAnchor.Caret
-            ? LayoutIndicatorSide.Right
-            : _settings.Side;
+        LayoutIndicatorSide side = _settings.Side ?? LayoutIndicatorSide.Right;
         return side switch
         {
             LayoutIndicatorSide.Top => (centerX + offsetX, anchor.Top - height - gap + offsetY),
@@ -125,6 +127,32 @@ internal sealed class LayoutIndicatorService : IDisposable
             LayoutIndicatorSide.Left => (anchor.Left - width - gap + offsetX, centerY + offsetY),
             _ => (anchor.Right + gap + offsetX, centerY + offsetY)
         };
+    }
+
+    private static bool TryGetAutomationRect(out NativeMethods.Rect rect)
+    {
+        try
+        {
+            System.Windows.Rect bounds = AutomationElement.FocusedElement.Current.BoundingRectangle;
+            if (bounds.IsEmpty || bounds.Width < 1 || bounds.Height < 1)
+            {
+                rect = default;
+                return false;
+            }
+            rect = new NativeMethods.Rect
+            {
+                Left = (int)Math.Round(bounds.Left),
+                Top = (int)Math.Round(bounds.Top),
+                Right = (int)Math.Round(bounds.Right),
+                Bottom = (int)Math.Round(bounds.Bottom)
+            };
+            return true;
+        }
+        catch (Exception exception) when (exception is ElementNotAvailableException or COMException)
+        {
+            rect = default;
+            return false;
+        }
     }
 
     private static bool TryGetCaretRect(NativeMethods.GuiThreadInfo info, out NativeMethods.Rect rect)

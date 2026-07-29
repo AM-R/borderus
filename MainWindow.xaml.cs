@@ -26,6 +26,9 @@ public partial class MainWindow : Window
     private bool _loading = true;
     private bool _exiting;
     private bool _editingActive = true;
+    private System.Windows.Point _previewDragStart;
+    private double _previewOffsetX;
+    private double _previewOffsetY;
 
     private BorderProfile CurrentProfile => _editingActive ? _settings.Active : _settings.Inactive;
 
@@ -56,7 +59,7 @@ public partial class MainWindow : Window
     {
         var menu = new Forms.ContextMenuStrip
         {
-            BackColor = System.Drawing.Color.FromArgb(16, 42, 58),
+            BackColor = System.Drawing.Color.FromArgb(43, 43, 43),
             ForeColor = System.Drawing.Color.FromArgb(244, 244, 244),
             Renderer = new DarkMenuRenderer()
         };
@@ -136,6 +139,7 @@ public partial class MainWindow : Window
     {
         BorderProfile profile = CurrentProfile;
         ThicknessSlider.Value = Math.Clamp(profile.Thickness, 1, 30);
+        PaddingSlider.Value = Math.Clamp(profile.Padding, -30, 30);
         RadiusSlider.Value = Math.Clamp(profile.CornerRadius, 0, 40);
         SpeedSlider.Value = Math.Clamp(profile.AnimationSpeed, 0.25, 40);
         AnimateCheckBox.IsChecked = profile.Animate;
@@ -171,6 +175,7 @@ public partial class MainWindow : Window
         _settings.Enabled = EnabledCheckBox.IsChecked == true;
         BorderProfile profile = CurrentProfile;
         profile.Thickness = ThicknessSlider.Value;
+        profile.Padding = PaddingSlider.Value;
         profile.CornerRadius = RadiusSlider.Value;
         profile.AnimationSpeed = SpeedSlider.Value;
         profile.Animate = AnimateCheckBox.IsChecked == true;
@@ -188,6 +193,7 @@ public partial class MainWindow : Window
         _settings.LayoutIndicator.OffsetY = LayoutOffsetYSlider.Value;
         if (_enabledMenuItem is not null) _enabledMenuItem.Checked = _settings.Enabled;
         ThicknessValue.Text = $"{profile.Thickness:0} px";
+        PaddingValue.Text = $"{profile.Padding:+0;-0;0} px";
         RadiusValue.Text = $"{profile.CornerRadius:0} px";
         LayoutSizeValue.Text = $"{_settings.LayoutIndicator.Size:0}";
         LayoutOpacityValue.Text = $"{_settings.LayoutIndicator.Opacity:P0}";
@@ -230,19 +236,35 @@ public partial class MainWindow : Window
     private void LayoutSideChanged(object sender, RoutedEventArgs e)
     {
         if (_loading || sender is not System.Windows.Controls.CheckBox { Tag: string tag } checkBox) return;
-        if (checkBox.IsChecked != true)
-        {
-            _loading = true;
-            checkBox.IsChecked = true;
-            _loading = false;
-            return;
-        }
         if (!Enum.TryParse(tag, out LayoutIndicatorSide side)) return;
-        _settings.LayoutIndicator.Side = side;
+        _settings.LayoutIndicator.Side = checkBox.IsChecked == true ? side : null;
         _loading = true;
         LoadLayoutSideControls();
         _loading = false;
         ApplySettings();
+    }
+
+    private void LayoutPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        _previewDragStart = e.GetPosition(LayoutSideSelector);
+        _previewOffsetX = LayoutOffsetXSlider.Value;
+        _previewOffsetY = LayoutOffsetYSlider.Value;
+        LayoutPreviewIndicator.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void LayoutPreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!LayoutPreviewIndicator.IsMouseCaptured || e.LeftButton != System.Windows.Input.MouseButtonState.Pressed) return;
+        System.Windows.Point current = e.GetPosition(LayoutSideSelector);
+        LayoutOffsetXSlider.Value = Math.Clamp(_previewOffsetX + current.X - _previewDragStart.X, -100, 100);
+        LayoutOffsetYSlider.Value = Math.Clamp(_previewOffsetY + current.Y - _previewDragStart.Y, -100, 100);
+    }
+
+    private void LayoutPreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        LayoutPreviewIndicator.ReleaseMouseCapture();
+        e.Handled = true;
     }
 
     private static T ReadTag<T>(System.Windows.Controls.ComboBox combo, T fallback) where T : struct
@@ -272,9 +294,10 @@ public partial class MainWindow : Window
         InactiveElevatedColorButton.IsEnabled = InactiveElevatedColorCheckBox.IsChecked == true;
         LayoutIndicatorOptions.IsEnabled = LayoutIndicatorCheckBox.IsChecked == true;
         LayoutPositionOptions.IsEnabled = LayoutIndicatorCheckBox.IsChecked == true;
-        bool caretAnchor = ReadTag(LayoutAnchorCombo, LayoutIndicatorAnchor.Field) == LayoutIndicatorAnchor.Caret;
-        LayoutSideSelector.IsEnabled = LayoutIndicatorCheckBox.IsChecked == true && !caretAnchor;
-        LayoutSideSelector.Opacity = caretAnchor ? 0.55 : 1;
+        LayoutSideSelector.IsEnabled = LayoutIndicatorCheckBox.IsChecked == true;
+        LayoutSideSelector.Opacity = 1;
+        LayoutPreviewTransform.X = _settings.LayoutIndicator.OffsetX * 0.35;
+        LayoutPreviewTransform.Y = _settings.LayoutIndicator.OffsetY * 0.35;
     }
 
     private void ChoosePrimaryColor(object sender, RoutedEventArgs e)
@@ -384,15 +407,15 @@ public partial class MainWindow : Window
 
     private sealed class DarkMenuColorTable : Forms.ProfessionalColorTable
     {
-        public override System.Drawing.Color ToolStripDropDownBackground => System.Drawing.Color.FromArgb(16, 42, 58);
-        public override System.Drawing.Color ImageMarginGradientBegin => System.Drawing.Color.FromArgb(16, 42, 58);
-        public override System.Drawing.Color ImageMarginGradientMiddle => System.Drawing.Color.FromArgb(16, 42, 58);
-        public override System.Drawing.Color ImageMarginGradientEnd => System.Drawing.Color.FromArgb(16, 42, 58);
-        public override System.Drawing.Color MenuItemSelected => System.Drawing.Color.FromArgb(22, 79, 120);
-        public override System.Drawing.Color MenuItemBorder => System.Drawing.Color.FromArgb(38, 104, 148);
-        public override System.Drawing.Color MenuBorder => System.Drawing.Color.FromArgb(75, 75, 75);
-        public override System.Drawing.Color SeparatorDark => System.Drawing.Color.FromArgb(75, 75, 75);
-        public override System.Drawing.Color SeparatorLight => System.Drawing.Color.FromArgb(75, 75, 75);
+        public override System.Drawing.Color ToolStripDropDownBackground => System.Drawing.Color.FromArgb(43, 43, 43);
+        public override System.Drawing.Color ImageMarginGradientBegin => System.Drawing.Color.FromArgb(43, 43, 43);
+        public override System.Drawing.Color ImageMarginGradientMiddle => System.Drawing.Color.FromArgb(43, 43, 43);
+        public override System.Drawing.Color ImageMarginGradientEnd => System.Drawing.Color.FromArgb(43, 43, 43);
+        public override System.Drawing.Color MenuItemSelected => System.Drawing.Color.FromArgb(62, 62, 62);
+        public override System.Drawing.Color MenuItemBorder => System.Drawing.Color.FromArgb(62, 62, 62);
+        public override System.Drawing.Color MenuBorder => System.Drawing.Color.FromArgb(82, 82, 82);
+        public override System.Drawing.Color SeparatorDark => System.Drawing.Color.FromArgb(92, 92, 92);
+        public override System.Drawing.Color SeparatorLight => System.Drawing.Color.FromArgb(92, 92, 92);
     }
 
     private sealed class DarkMenuRenderer : Forms.ToolStripProfessionalRenderer
@@ -411,8 +434,8 @@ public partial class MainWindow : Window
         {
             var box = new System.Drawing.Rectangle(e.ImageRectangle.X + 1, e.ImageRectangle.Y + 1,
                 Math.Max(14, e.ImageRectangle.Width - 2), Math.Max(14, e.ImageRectangle.Height - 2));
-            using var background = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(22, 79, 120));
-            using var border = new System.Drawing.Pen(System.Drawing.Color.FromArgb(38, 104, 148));
+            using var background = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(62, 62, 62));
+            using var border = new System.Drawing.Pen(System.Drawing.Color.FromArgb(110, 110, 110));
             using var check = new System.Drawing.Pen(System.Drawing.Color.White, 2f)
             {
                 StartCap = System.Drawing.Drawing2D.LineCap.Round,

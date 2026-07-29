@@ -91,6 +91,11 @@
                       <TextBlock x:Name="RadiusValue" Grid.Column="1" Text="4 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                   </StackPanel>
                 </Grid>
+                <StackPanel Margin="0,0,0,12"><TextBlock Text="Отступ от окна" FontSize="13" Foreground="#FFAAAAAA" />
+                  <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="56" /></Grid.ColumnDefinitions>
+                    <Slider x:Name="PaddingSlider" Minimum="-30" Maximum="30" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" />
+                    <TextBlock x:Name="PaddingValue" Grid.Column="1" Text="0 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                </StackPanel>
                 <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                   <StackPanel Margin="0,0,8,0"><TextBlock Text="Линия" FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,0,4" />
                     <ComboBox x:Name="LineStyleCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="Сплошная" Tag="Solid" /><ComboBoxItem Content="Пунктир" Tag="Dashed" /><ComboBoxItem Content="Точки" Tag="Dotted" /></ComboBox></StackPanel>
@@ -164,7 +169,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions>
                 <CheckBox x:Name="LayoutTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Top" ToolTip="Сверху" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
                 <CheckBox x:Name="LayoutLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Left" ToolTip="Слева" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
-                <Border Grid.Row="1" Grid.Column="1" Background="#FF171717" BorderBrush="#FF555555" BorderThickness="1"><StackPanel VerticalAlignment="Center"><TextBlock Text="Поле ввода" HorizontalAlignment="Center" Foreground="#FFAAAAAA" /><Border Background="#FF164F78" CornerRadius="4" Padding="10,5" HorizontalAlignment="Center" Margin="0,8,0,0"><TextBlock Text="🇷🇺 RU" /></Border></StackPanel></Border>
+                <Border Grid.Row="1" Grid.Column="1" Background="#FF171717" BorderBrush="#FF555555" BorderThickness="1"><StackPanel VerticalAlignment="Center"><TextBlock Text="Поле ввода" HorizontalAlignment="Center" Foreground="#FFAAAAAA" /><Border x:Name="LayoutPreviewIndicator" Background="#FF3A3A3A" BorderBrush="#FF777777" BorderThickness="1" CornerRadius="4" Padding="10,5" HorizontalAlignment="Center" Margin="0,8,0,0" Cursor="SizeAll" MouseLeftButtonDown="LayoutPreviewMouseDown" MouseMove="LayoutPreviewMouseMove" MouseLeftButtonUp="LayoutPreviewMouseUp"><Border.RenderTransform><TranslateTransform x:Name="LayoutPreviewTransform" /></Border.RenderTransform><TextBlock Text="🇷🇺 RU" /></Border></StackPanel></Border>
                 <CheckBox x:Name="LayoutRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Right" ToolTip="Справа" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
                 <CheckBox x:Name="LayoutBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Bottom" ToolTip="Снизу" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
               </Grid>

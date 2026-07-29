@@ -235,7 +235,8 @@ internal sealed class WindowBorderService : IDisposable
     {
         uint dpi = NativeMethods.GetDpiForWindow(hWnd);
         double scale = dpi == 0 ? 1 : dpi / 96d;
-        return GetProfile(hWnd).Thickness * scale;
+        BorderProfile profile = GetProfile(hWnd);
+        return (profile.Thickness + Math.Clamp(profile.Padding, -30, 30)) * scale;
     }
     private bool IsElevated(nint hWnd) => _elevatedWindows.TryGetValue(hWnd, out bool elevated) && elevated;
     private double GetDashOffset(bool active) => active ? _activeDashOffset : _inactiveDashOffset;

@@ -21,7 +21,7 @@ public sealed class LayoutIndicatorSettings
     public LayoutIndicatorContent Content { get; set; } = LayoutIndicatorContent.FlagAndCode;
     public bool ShowContainer { get; set; } = true;
     public LayoutIndicatorAnchor Anchor { get; set; } = LayoutIndicatorAnchor.Field;
-    public LayoutIndicatorSide Side { get; set; } = LayoutIndicatorSide.Right;
+    public LayoutIndicatorSide? Side { get; set; }
     public double OffsetX { get; set; } = 8;
     public double OffsetY { get; set; }
 
@@ -31,6 +31,7 @@ public sealed class LayoutIndicatorSettings
 public sealed class BorderProfile
 {
     public double Thickness { get; set; } = 1;
+    public double Padding { get; set; }
     public string Color { get; set; } = "#FF0078D7";
     public string SecondaryColor { get; set; } = "#FF00B7C3";
     public bool UseElevatedColor { get; set; }

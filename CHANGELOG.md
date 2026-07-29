@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.13
+
+- Added independent signed border spacing for active and inactive windows.
+- Added Windows-style dark-gray tray menu colors and light checkmarks.
+- Added browser field detection and stabilized the layout indicator position.
+- Added optional side positioning and draggable live offset preview.
+
 ## 1.2.12
 
 - Added the layout flag tab with field/caret positioning, content, container, size, opacity, and offsets.
