@@ -11,18 +11,19 @@ public enum LayoutIndicatorPlacement { Floating, Inside }
 public enum LayoutIndicatorContent { FlagOnly, FlagAndCode }
 public enum LayoutIndicatorAnchor { Field, Caret }
 public enum LayoutIndicatorSide { Top, Right, Bottom, Left }
-public enum KeyboardRepeatDelay { System, Short, Medium, Long }
-public enum KeySound { None, Soft, Click, Mechanical }
+public enum KeySound { None, Soft, Click, Mechanical, SystemAsterisk, SystemBeep, SystemExclamation, SystemHand }
 
 public sealed class KeyboardSettings
 {
-    public KeyboardRepeatDelay RepeatDelay { get; set; }
+    public int RepeatDelayMs { get; set; } = 250;
+    public int RepeatIntervalMs { get; set; } = 25;
     public KeySound RussianSound { get; set; }
     public KeySound EnglishSound { get; set; }
 
     public KeyboardSettings Copy() => new()
     {
-        RepeatDelay = RepeatDelay,
+        RepeatDelayMs = RepeatDelayMs,
+        RepeatIntervalMs = RepeatIntervalMs,
         RussianSound = RussianSound,
         EnglishSound = EnglishSound
     };

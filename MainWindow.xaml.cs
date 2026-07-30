@@ -157,7 +157,8 @@ public partial class MainWindow : Window
         SelectByTag(LayoutContentCombo, _settings.LayoutIndicator.Content.ToString());
         SelectByTag(LayoutAnchorCombo, _settings.LayoutIndicator.Anchor.ToString());
         LoadLayoutSideControls();
-        SelectByTag(RepeatDelayCombo, _settings.Keyboard.RepeatDelay.ToString());
+        RepeatDelaySlider.Value = Math.Clamp(_settings.Keyboard.RepeatDelayMs, 10, 1000);
+        RepeatRateSlider.Value = Math.Clamp(_settings.Keyboard.RepeatIntervalMs, 5, 250);
         SelectByTag(RussianSoundCombo, _settings.Keyboard.RussianSound.ToString());
         SelectByTag(EnglishSoundCombo, _settings.Keyboard.EnglishSound.ToString());
         ProfileCombo.SelectedIndex = 0;
@@ -235,7 +236,12 @@ public partial class MainWindow : Window
 
     private void KeyboardSettingChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_loading && IsLoaded) ApplySettings();
+        if (_loading || !IsLoaded) return;
+        ApplySettings();
+        if (sender == RussianSoundCombo)
+            _keyboardService.Preview(_settings.Keyboard.RussianSound);
+        else if (sender == EnglishSoundCombo)
+            _keyboardService.Preview(_settings.Keyboard.EnglishSound);
     }
 
     private void ApplySettings()
@@ -259,7 +265,8 @@ public partial class MainWindow : Window
         _settings.LayoutIndicator.Anchor = ReadTag(LayoutAnchorCombo, LayoutIndicatorAnchor.Field);
         _settings.LayoutIndicator.OffsetX = LayoutOffsetXSlider.Value;
         _settings.LayoutIndicator.OffsetY = LayoutOffsetYSlider.Value;
-        _settings.Keyboard.RepeatDelay = ReadTag(RepeatDelayCombo, KeyboardRepeatDelay.System);
+        _settings.Keyboard.RepeatDelayMs = (int)RepeatDelaySlider.Value;
+        _settings.Keyboard.RepeatIntervalMs = (int)RepeatRateSlider.Value;
         _settings.Keyboard.RussianSound = ReadTag(RussianSoundCombo, KeySound.None);
         _settings.Keyboard.EnglishSound = ReadTag(EnglishSoundCombo, KeySound.None);
         if (_enabledMenuItem is not null) _enabledMenuItem.Checked = _settings.Enabled;
@@ -270,6 +277,8 @@ public partial class MainWindow : Window
         LayoutOpacityValue.Text = $"{_settings.LayoutIndicator.Opacity:P0}";
         LayoutOffsetXValue.Text = $"{_settings.LayoutIndicator.OffsetX:0}";
         LayoutOffsetYValue.Text = $"{_settings.LayoutIndicator.OffsetY:0}";
+        RepeatDelayValue.Text = $"{_settings.Keyboard.RepeatDelayMs} мс";
+        RepeatRateValue.Text = $"{_settings.Keyboard.RepeatIntervalMs} мс";
         UpdateConditionalControls();
         _saveTimer.Stop();
         _saveTimer.Start();

@@ -185,13 +185,10 @@
         <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
           <StackPanel>
             <TextBlock Text="Клавиатура" FontSize="20" Margin="0,0,0,12" />
-            <TextBlock Text="Задержка перед началом повтора при удержании клавиши" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,8" />
-            <ComboBox x:Name="RepeatDelayCombo" SelectionChanged="KeyboardSettingChanged">
-              <ComboBoxItem Content="Системная" Tag="System" />
-              <ComboBoxItem Content="Короткая" Tag="Short" />
-              <ComboBoxItem Content="Средняя" Tag="Medium" />
-              <ComboBoxItem Content="Длинная" Tag="Long" />
-            </ComboBox>
+            <TextBlock Text="Задержка до начала повтора" Foreground="{DynamicResource SecondaryTextBrush}" />
+            <Grid Margin="0,4,0,12"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" ValueChanged="SettingChanged" /><TextBlock x:Name="RepeatDelayValue" HorizontalAlignment="Right" /></Grid>
+            <TextBlock Text="Скорость после начала повтора" Foreground="{DynamicResource SecondaryTextBrush}" />
+            <Grid Margin="0,4,0,8"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" ValueChanged="SettingChanged" /><TextBlock x:Name="RepeatRateValue" HorizontalAlignment="Right" /></Grid>
           </StackPanel>
         </Border>
       </TabItem>
@@ -202,11 +199,11 @@
             <TextBlock Text="Звук воспроизводится один раз при нажатии символа. Повторное нажатие перезапускает звук без наложения артефактов." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
             <TextBlock Text="Русская раскладка" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
             <ComboBox x:Name="RussianSoundCombo" SelectionChanged="KeyboardSettingChanged" Margin="0,0,0,12">
-              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Мягкий" Tag="Soft" /><ComboBoxItem Content="Щелчок" Tag="Click" /><ComboBoxItem Content="Механический" Tag="Mechanical" />
+              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Мягкий" Tag="Soft" /><ComboBoxItem Content="Щелчок" Tag="Click" /><ComboBoxItem Content="Механический" Tag="Mechanical" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" />
             </ComboBox>
             <TextBlock Text="Английская раскладка" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
             <ComboBox x:Name="EnglishSoundCombo" SelectionChanged="KeyboardSettingChanged">
-              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Мягкий" Tag="Soft" /><ComboBoxItem Content="Щелчок" Tag="Click" /><ComboBoxItem Content="Механический" Tag="Mechanical" />
+              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Мягкий" Tag="Soft" /><ComboBoxItem Content="Щелчок" Tag="Click" /><ComboBoxItem Content="Механический" Tag="Mechanical" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" />
             </ComboBox>
           </StackPanel>
         </Border>

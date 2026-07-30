@@ -34,6 +34,10 @@ internal static class NativeMethods
     internal const int WhKeyboardLl = 13;
     internal const int WmKeyDown = 0x0100;
     internal const int WmSysKeyDown = 0x0104;
+    internal const int WmKeyUp = 0x0101;
+    internal const int WmSysKeyUp = 0x0105;
+    internal const uint LlkhfInjected = 0x00000010;
+    internal const uint KeyeventfKeyup = 0x0002;
     internal const uint SpiGetKeyboardDelay = 0x0016;
     internal const uint SpiSetKeyboardDelay = 0x0017;
     internal const uint SpifUpdateIniFile = 0x0001;
@@ -47,6 +51,9 @@ internal static class NativeMethods
     internal delegate bool EnumWindowsProc(nint hWnd, nint lParam);
     internal delegate void WinEventProc(nint hook, uint eventType, nint hWnd, int objectId, int childId, uint eventThread, uint eventTime);
     internal delegate nint LowLevelKeyboardProc(int code, nint message, nint data);
+
+    [DllImport("user32.dll")]
+    internal static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, nuint extraInfo);
 
     [DllImport("user32.dll")]
     internal static extern nint SetWindowsHookEx(int hookId, LowLevelKeyboardProc callback, nint module, uint threadId);
@@ -222,6 +229,16 @@ internal static class NativeMethods
         public nint MoveSizeWindow;
         public nint CaretWindow;
         public Rect CaretRect;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct LowLevelKeyboardInput
+    {
+        public uint VirtualKey;
+        public uint ScanCode;
+        public uint Flags;
+        public uint Time;
+        public nuint ExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
