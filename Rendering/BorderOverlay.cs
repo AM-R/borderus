@@ -9,11 +9,11 @@ namespace Borderus.Rendering;
 internal sealed class BorderOverlay : Window
 {
     private readonly BorderRenderer _renderer = new();
-    private readonly nint _target;
+    private nint _target;
     private nint _handle;
     private bool _shown;
 
-    public BorderOverlay(nint target)
+    public BorderOverlay(nint target = default)
     {
         _target = target;
         AllowsTransparency = true;
@@ -34,11 +34,18 @@ internal sealed class BorderOverlay : Window
 
     public void ShowPrepared()
     {
-        if (_shown) return;
-        Show();
-        NativeMethods.SetWindowLongPtr(_handle, NativeMethods.GwlHwndParent, 0);
-        _shown = true;
+        if (!_shown)
+        {
+            Show();
+            NativeMethods.SetWindowLongPtr(_handle, NativeMethods.GwlHwndParent, 0);
+            _shown = true;
+            return;
+        }
+
+        NativeMethods.ShowWindow(_handle, NativeMethods.SwShowNoActivate);
     }
+
+    public void SetTarget(nint target) => _target = target;
 
     public void HideImmediately() => NativeMethods.ShowWindow(_handle, NativeMethods.SwHide);
 

@@ -9,9 +9,10 @@ namespace Borderus.Services;
 internal sealed class WindowBorderService : IDisposable
 {
     private readonly ConcurrentDictionary<nint, BorderOverlay> _overlays = new();
+    private readonly OverlayPool _pool;
     private readonly ConcurrentDictionary<nint, FrameOffsets> _frameOffsets = new();
     private readonly ConcurrentDictionary<nint, bool> _elevatedWindows = new();
-    private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
+    private readonly Dispatcher _dispatcher;
     private readonly DispatcherTimer _reconcileTimer;
     private readonly DispatcherTimer _animationTimer;
     private readonly NativeMethods.WinEventProc _eventCallback;
@@ -25,8 +26,10 @@ internal sealed class WindowBorderService : IDisposable
     private double _inactiveDashOffset;
     private bool _disposed;
 
-    public WindowBorderService(BorderSettings settings)
+    public WindowBorderService(Dispatcher dispatcher, BorderSettings settings)
     {
+        _dispatcher = dispatcher;
+        _pool = new OverlayPool();
         _settings = settings.Copy();
         _foregroundWindow = NativeMethods.GetForegroundWindow();
         _eventCallback = OnWinEvent;
@@ -177,16 +180,16 @@ internal sealed class WindowBorderService : IDisposable
 
             if (!_overlays.TryGetValue(hWnd, out var overlay))
             {
-                overlay = new BorderOverlay(hWnd);
-                if (!_overlays.TryAdd(hWnd, overlay))
+                overlay = _pool.Borrow(hWnd);
+                if (overlay is null || !_overlays.TryAdd(hWnd, overlay))
                 {
-                    overlay.Close();
+                    overlay?.Close();
                     return true;
                 }
+                overlay.ShowPrepared();
                 bool active = hWnd == _foregroundWindow;
                 overlay.Render(_settings, GetDashOffset(active), active, IsElevated(hWnd));
                 overlay.Position(rect, GetPadding(hWnd));
-                overlay.ShowPrepared();
             }
             overlay.Position(rect, GetPadding(hWnd));
             return true;
@@ -245,7 +248,8 @@ internal sealed class WindowBorderService : IDisposable
     {
         _frameOffsets.TryRemove(hWnd, out _);
         _elevatedWindows.TryRemove(hWnd, out _);
-        if (_overlays.TryRemove(hWnd, out var overlay)) overlay.Close();
+        if (_overlays.TryRemove(hWnd, out var overlay))
+            _pool.Return(overlay);
     }
 
     private void HideAll()
@@ -262,6 +266,7 @@ internal sealed class WindowBorderService : IDisposable
             if (hook != 0) NativeMethods.UnhookWinEvent(hook);
         _moveTimer.Dispose();
         HideAll();
+        _pool.Dispose();
     }
 
     private readonly record struct FrameOffsets(int Left, int Top, int Right, int Bottom);

@@ -6,7 +6,15 @@ namespace Borderus.Services;
 
 internal static class SettingsStore
 {
-    private static readonly string FilePath = Path.Combine(AppContext.BaseDirectory, "settings.json");
+    private static readonly string AppDataDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "Borderus");
+    private static readonly string FilePath = Path.Combine(AppDataDir, "settings.json");
+
+    static SettingsStore()
+    {
+        Directory.CreateDirectory(AppDataDir);
+    }
 
     public static BorderSettings Load()
     {

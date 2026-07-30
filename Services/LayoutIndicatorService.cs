@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Automation;
+using System.Windows.Automation.Text;
 using System.Windows.Threading;
 using Borderus.Models;
 using Borderus.Native;
@@ -11,16 +12,18 @@ namespace Borderus.Services;
 internal sealed class LayoutIndicatorService : IDisposable
 {
     private readonly LayoutIndicatorOverlay _overlay = new();
-    private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
-    private readonly DispatcherTimer _layoutTimer;
+    private readonly Dispatcher _dispatcher;
     private readonly System.Threading.Timer _moveTimer;
+    private readonly System.Threading.Timer _refreshTimer;
     private readonly NativeMethods.WinEventProc _eventCallback;
     private readonly nint[] _hooks = new nint[4];
     private LayoutIndicatorSettings _settings;
+    private int _refreshing;
     private bool _disposed;
 
-    public LayoutIndicatorService(BorderSettings settings)
+    public LayoutIndicatorService(Dispatcher dispatcher, BorderSettings settings)
     {
+        _dispatcher = dispatcher;
         _settings = settings.LayoutIndicator.Copy();
         _eventCallback = OnWinEvent;
         uint flags = NativeMethods.WineventOutOfContext | NativeMethods.WineventSkipOwnProcess;
@@ -34,16 +37,14 @@ internal sealed class LayoutIndicatorService : IDisposable
             NativeMethods.EventSystemMoveSizeEnd, 0, _eventCallback, 0, 0, flags);
 
         _moveTimer = new System.Threading.Timer(_ => QueueRefresh(), null, Timeout.Infinite, Timeout.Infinite);
-        _layoutTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(60), DispatcherPriority.Background,
-            (_, _) => Refresh(), _dispatcher);
-        _layoutTimer.Start();
+        _refreshTimer = new System.Threading.Timer(_ => Refresh(), null, 0, 16);
     }
 
     public void Apply(BorderSettings settings)
     {
         _settings = settings.LayoutIndicator.Copy();
         if (!_settings.Enabled) _overlay.HideImmediately();
-        else Refresh();
+        else QueueRefresh();
     }
 
     private void OnWinEvent(nint hook, uint eventType, nint hWnd, int objectId, int childId,
@@ -65,61 +66,98 @@ internal sealed class LayoutIndicatorService : IDisposable
 
     private void QueueRefresh()
     {
-        if (!_disposed) _dispatcher.BeginInvoke(DispatcherPriority.Send, Refresh);
+        if (!_disposed) ThreadPool.QueueUserWorkItem(_ => Refresh());
     }
 
     private void Refresh()
     {
-        if (_disposed || !_settings.Enabled)
+        if (_disposed || Interlocked.Exchange(ref _refreshing, 1) != 0) return;
+        try
         {
-            _overlay.HideImmediately();
-            return;
-        }
+            LayoutIndicatorSettings settings = _settings;
+            if (!settings.Enabled)
+            {
+                QueueHide();
+                return;
+            }
 
-        nint foreground = NativeMethods.GetForegroundWindow();
-        uint threadId = NativeMethods.GetWindowThreadProcessId(foreground, out _);
-        var info = new NativeMethods.GuiThreadInfo { Size = Marshal.SizeOf<NativeMethods.GuiThreadInfo>() };
-        if (threadId == 0)
+            nint foreground = NativeMethods.GetForegroundWindow();
+            uint threadId = NativeMethods.GetWindowThreadProcessId(foreground, out _);
+            var info = new NativeMethods.GuiThreadInfo { Size = Marshal.SizeOf<NativeMethods.GuiThreadInfo>() };
+            if (threadId == 0)
+            {
+                QueueHide();
+                return;
+            }
+
+            bool hasGuiInfo = NativeMethods.GetGUIThreadInfo(threadId, ref info);
+            NativeMethods.Rect caretRect = default;
+            bool hasCaret = hasGuiInfo && info.CaretWindow != 0 && TryGetCaretRect(info, out caretRect);
+            bool hasAutomationField = false;
+            bool hasAutomationCaret = false;
+            NativeMethods.Rect automationCaret = default;
+            NativeMethods.Rect automationField = default;
+            if (!hasCaret || settings.Anchor == LayoutIndicatorAnchor.Field)
+                hasAutomationCaret = TryGetAutomationRects(out automationCaret, out automationField,
+                    out hasAutomationField);
+            if (hasAutomationCaret)
+            {
+                caretRect = automationCaret;
+                hasCaret = true;
+            }
+            if (!hasCaret && !hasAutomationField)
+            {
+                QueueHide();
+                return;
+            }
+
+            NativeMethods.Rect anchorRect = hasCaret ? caretRect : automationField;
+            if (settings.Anchor == LayoutIndicatorAnchor.Field)
+            {
+                if (hasAutomationField)
+                    anchorRect = automationField;
+                else if (hasGuiInfo && info.FocusWindow != 0 && info.FocusWindow != foreground &&
+                    NativeMethods.GetWindowRect(info.FocusWindow, out var focusRect) &&
+                    focusRect.Width >= 40 && focusRect.Height >= 14)
+                    anchorRect = focusRect;
+            }
+
+            uint dpi = NativeMethods.GetDpiForWindow(foreground);
+            double scale = dpi == 0 ? 1 : dpi / 96d;
+            double size = Math.Clamp(settings.Size, 10, 80);
+            double widthFactor = settings.Content == LayoutIndicatorContent.FlagOnly ? 1.45 : 1.75;
+            int width = (int)Math.Ceiling(size * widthFactor * scale);
+            int height = (int)Math.Ceiling(size * scale);
+            (int x, int y) = Position(anchorRect, width, height, scale, settings);
+
+            (string language, string region) = GetLayout(threadId);
+            if (foreground != NativeMethods.GetForegroundWindow()) return;
+            _dispatcher.BeginInvoke(DispatcherPriority.Send, () =>
+            {
+                if (!_disposed && _settings.Enabled)
+                    _overlay.Update(region, language, settings, x, y, scale);
+            });
+        }
+        finally
         {
-            _overlay.HideImmediately();
-            return;
+            Interlocked.Exchange(ref _refreshing, 0);
         }
-
-        bool hasGuiInfo = NativeMethods.GetGUIThreadInfo(threadId, ref info);
-        NativeMethods.Rect caretRect = default;
-        bool hasCaret = hasGuiInfo && info.CaretWindow != 0 && TryGetCaretRect(info, out caretRect);
-        if (!hasCaret && !TryGetAutomationRect(out caretRect))
-        {
-            _overlay.HideImmediately();
-            return;
-        }
-
-        NativeMethods.Rect anchorRect = caretRect;
-        if (_settings.Anchor == LayoutIndicatorAnchor.Field && hasGuiInfo && info.FocusWindow != 0 &&
-            info.FocusWindow != foreground && NativeMethods.GetWindowRect(info.FocusWindow, out var focusRect) &&
-            focusRect.Width >= 40 && focusRect.Height >= 14)
-            anchorRect = focusRect;
-
-        uint dpi = NativeMethods.GetDpiForWindow(foreground);
-        double scale = dpi == 0 ? 1 : dpi / 96d;
-        double size = Math.Clamp(_settings.Size, 10, 80);
-        double widthFactor = _settings.Content == LayoutIndicatorContent.FlagOnly ? 1.45 : 1.75;
-        int width = (int)Math.Ceiling(size * widthFactor * scale);
-        int height = (int)Math.Ceiling(size * scale);
-        (int x, int y) = Position(anchorRect, width, height, scale);
-
-        (string language, string region) = GetLayout(threadId);
-        _overlay.Update(region, language, _settings, x, y, scale);
     }
 
-    private (int X, int Y) Position(NativeMethods.Rect anchor, int width, int height, double scale)
+    private void QueueHide() => _dispatcher.BeginInvoke(DispatcherPriority.Send, () =>
+    {
+        if (!_disposed) _overlay.HideImmediately();
+    });
+
+    private static (int X, int Y) Position(NativeMethods.Rect anchor, int width, int height, double scale,
+        LayoutIndicatorSettings settings)
     {
         int gap = (int)Math.Ceiling(6 * scale);
-        int offsetX = (int)Math.Round(Math.Clamp(_settings.OffsetX, -100, 100) * scale);
-        int offsetY = (int)Math.Round(Math.Clamp(_settings.OffsetY, -100, 100) * scale);
+        int offsetX = (int)Math.Round(Math.Clamp(settings.OffsetX, -100, 100) * scale);
+        int offsetY = (int)Math.Round(Math.Clamp(settings.OffsetY, -100, 100) * scale);
         int centerX = anchor.Left + (anchor.Width - width) / 2;
         int centerY = anchor.Top + (anchor.Height - height) / 2;
-        LayoutIndicatorSide side = _settings.Side ?? LayoutIndicatorSide.Right;
+        LayoutIndicatorSide side = settings.Side ?? LayoutIndicatorSide.Right;
         return side switch
         {
             LayoutIndicatorSide.Top => (centerX + offsetX, anchor.Top - height - gap + offsetY),
@@ -129,31 +167,80 @@ internal sealed class LayoutIndicatorService : IDisposable
         };
     }
 
-    private static bool TryGetAutomationRect(out NativeMethods.Rect rect)
+    private static bool TryGetAutomationRects(out NativeMethods.Rect caretRect,
+        out NativeMethods.Rect fieldRect, out bool hasField)
     {
+        caretRect = default;
+        fieldRect = default;
+        hasField = false;
         try
         {
-            System.Windows.Rect bounds = AutomationElement.FocusedElement.Current.BoundingRectangle;
-            if (bounds.IsEmpty || bounds.Width < 1 || bounds.Height < 1)
+            AutomationElement focused = AutomationElement.FocusedElement;
+            System.Windows.Rect fieldBounds = focused.Current.BoundingRectangle;
+            if (!fieldBounds.IsEmpty)
             {
-                rect = default;
-                return false;
+                fieldRect = ToNativeRect(fieldBounds);
+                hasField = fieldRect.Width >= 1 && fieldRect.Height >= 1;
             }
-            rect = new NativeMethods.Rect
+
+            AutomationElement? textElement = focused;
+            for (int depth = 0; depth < 8 && textElement is not null; depth++)
             {
-                Left = (int)Math.Round(bounds.Left),
-                Top = (int)Math.Round(bounds.Top),
-                Right = (int)Math.Round(bounds.Right),
-                Bottom = (int)Math.Round(bounds.Bottom)
-            };
-            return true;
+                if (textElement.TryGetCurrentPattern(TextPattern.Pattern, out object patternObject) &&
+                    TryGetTextCaret((TextPattern)patternObject, out caretRect))
+                    return true;
+                textElement = TreeWalker.RawViewWalker.GetParent(textElement);
+            }
+            return false;
         }
-        catch (Exception exception) when (exception is ElementNotAvailableException or COMException)
+        catch (Exception exception) when (exception is ElementNotAvailableException or COMException
+            or InvalidOperationException)
         {
-            rect = default;
             return false;
         }
     }
+
+    private static bool TryGetTextCaret(TextPattern pattern, out NativeMethods.Rect caretRect)
+    {
+        caretRect = default;
+        TextPatternRange[] selection = pattern.GetSelection();
+        if (selection.Length == 0) return false;
+
+        TextPatternRange range = selection[^1];
+        System.Windows.Rect[] bounds = range.GetBoundingRectangles();
+        bool caretAtLeft = true;
+        if (bounds.Length < 4)
+        {
+            range = range.Clone();
+            if (range.MoveEndpointByUnit(TextPatternRangeEndpoint.End, TextUnit.Character, 1) == 0)
+            {
+                caretAtLeft = false;
+                if (range.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -1) == 0)
+                    return false;
+            }
+            bounds = range.GetBoundingRectangles();
+        }
+        if (bounds.Length < 4) return false;
+
+        System.Windows.Rect boundsRect = bounds[^1];
+        double x = caretAtLeft ? boundsRect.Left : boundsRect.Right;
+        caretRect = new NativeMethods.Rect
+        {
+            Left = (int)Math.Round(x),
+            Top = (int)Math.Round(boundsRect.Top),
+            Right = (int)Math.Round(x) + 1,
+            Bottom = (int)Math.Round(boundsRect.Bottom)
+        };
+        return true;
+    }
+
+    private static NativeMethods.Rect ToNativeRect(System.Windows.Rect rect) => new()
+    {
+        Left = (int)Math.Round(rect.Left),
+        Top = (int)Math.Round(rect.Top),
+        Right = (int)Math.Round(rect.Right),
+        Bottom = (int)Math.Round(rect.Bottom)
+    };
 
     private static bool TryGetCaretRect(NativeMethods.GuiThreadInfo info, out NativeMethods.Rect rect)
     {
@@ -184,9 +271,21 @@ internal sealed class LayoutIndicatorService : IDisposable
 
         string region = language switch
         {
-            "ru" => "RU", "uk" => "UA", "be" => "BY", "en" => "US", "de" => "DE",
-            "fr" => "FR", "es" => "ES", "it" => "IT", "pl" => "PL", "cs" => "CZ",
-            "tr" => "TR", "pt" => "PT", "ja" => "JP", "ko" => "KR", "zh" => "CN",
+            "ru" => "RU",
+            "uk" => "UA",
+            "be" => "BY",
+            "en" => "US",
+            "de" => "DE",
+            "fr" => "FR",
+            "es" => "ES",
+            "it" => "IT",
+            "pl" => "PL",
+            "cs" => "CZ",
+            "tr" => "TR",
+            "pt" => "PT",
+            "ja" => "JP",
+            "ko" => "KR",
+            "zh" => "CN",
             _ => string.Empty
         };
         return (language, region);
@@ -195,8 +294,8 @@ internal sealed class LayoutIndicatorService : IDisposable
     public void Dispose()
     {
         _disposed = true;
-        _layoutTimer.Stop();
         _moveTimer.Dispose();
+        _refreshTimer.Dispose();
         foreach (nint hook in _hooks)
             if (hook != 0) NativeMethods.UnhookWinEvent(hook);
         _overlay.Close();

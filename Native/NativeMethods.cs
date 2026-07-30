@@ -31,13 +31,36 @@ internal static class NativeMethods
     internal const uint EventObjectLocationChange = 0x800B;
     internal const int ObjidWindow = 0;
     internal const int ObjidCaret = -8;
+    internal const int WhKeyboardLl = 13;
+    internal const int WmKeyDown = 0x0100;
+    internal const int WmSysKeyDown = 0x0104;
+    internal const uint SpiGetKeyboardDelay = 0x0016;
+    internal const uint SpiSetKeyboardDelay = 0x0017;
+    internal const uint SpifUpdateIniFile = 0x0001;
+    internal const uint SpifSendChange = 0x0002;
     internal const int SwHide = 0;
+    internal const int SwShowNoActivate = 4;
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const uint TokenQuery = 0x0008;
     private const int TokenElevation = 20;
 
     internal delegate bool EnumWindowsProc(nint hWnd, nint lParam);
     internal delegate void WinEventProc(nint hook, uint eventType, nint hWnd, int objectId, int childId, uint eventThread, uint eventTime);
+    internal delegate nint LowLevelKeyboardProc(int code, nint message, nint data);
+
+    [DllImport("user32.dll")]
+    internal static extern nint SetWindowsHookEx(int hookId, LowLevelKeyboardProc callback, nint module, uint threadId);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UnhookWindowsHookEx(nint hook);
+
+    [DllImport("user32.dll")]
+    internal static extern nint CallNextHookEx(nint hook, int code, nint message, nint data);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SystemParametersInfo(uint action, uint parameter, ref int value, uint flags);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -135,11 +158,11 @@ internal static class NativeMethods
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(nint hWnd, int attribute, ref int value, int size);
 
-    internal static void EnableDarkTitleBar(nint hWnd)
+    internal static void SetDarkTitleBar(nint hWnd, bool enabled)
     {
-        int enabled = 1;
-        if (DwmSetWindowAttribute(hWnd, 20, ref enabled, sizeof(int)) != 0)
-            DwmSetWindowAttribute(hWnd, 19, ref enabled, sizeof(int));
+        int value = enabled ? 1 : 0;
+        if (DwmSetWindowAttribute(hWnd, 20, ref value, sizeof(int)) != 0)
+            DwmSetWindowAttribute(hWnd, 19, ref value, sizeof(int));
     }
 
     internal static bool TryGetFrameBounds(nint hWnd, out Rect rect)

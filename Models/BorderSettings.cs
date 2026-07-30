@@ -11,6 +11,22 @@ public enum LayoutIndicatorPlacement { Floating, Inside }
 public enum LayoutIndicatorContent { FlagOnly, FlagAndCode }
 public enum LayoutIndicatorAnchor { Field, Caret }
 public enum LayoutIndicatorSide { Top, Right, Bottom, Left }
+public enum KeyboardRepeatDelay { System, Short, Medium, Long }
+public enum KeySound { None, Soft, Click, Mechanical }
+
+public sealed class KeyboardSettings
+{
+    public KeyboardRepeatDelay RepeatDelay { get; set; }
+    public KeySound RussianSound { get; set; }
+    public KeySound EnglishSound { get; set; }
+
+    public KeyboardSettings Copy() => new()
+    {
+        RepeatDelay = RepeatDelay,
+        RussianSound = RussianSound,
+        EnglishSound = EnglishSound
+    };
+}
 
 public sealed class LayoutIndicatorSettings
 {
@@ -25,13 +41,25 @@ public sealed class LayoutIndicatorSettings
     public double OffsetX { get; set; } = 8;
     public double OffsetY { get; set; }
 
-    public LayoutIndicatorSettings Copy() => (LayoutIndicatorSettings)MemberwiseClone();
+    public LayoutIndicatorSettings Copy() => new()
+    {
+        Enabled = Enabled,
+        Size = Size,
+        Opacity = Opacity,
+        Placement = Placement,
+        Content = Content,
+        ShowContainer = ShowContainer,
+        Anchor = Anchor,
+        Side = Side,
+        OffsetX = OffsetX,
+        OffsetY = OffsetY
+    };
 }
 
 public sealed class BorderProfile
 {
     public double Thickness { get; set; } = 1;
-    public double Padding { get; set; }
+    public double Padding { get; set; } = -1;
     public string Color { get; set; } = "#FF0078D7";
     public string SecondaryColor { get; set; } = "#FF00B7C3";
     public bool UseElevatedColor { get; set; }
@@ -57,7 +85,26 @@ public sealed class BorderProfile
     [JsonIgnore]
     public MediaColor ParsedElevatedColor => BorderSettings.ParseColor(ElevatedColor, Colors.Orange);
 
-    public BorderProfile Copy() => (BorderProfile)MemberwiseClone();
+    public BorderProfile Copy() => new()
+    {
+        Thickness = Thickness,
+        Padding = Padding,
+        Color = Color,
+        SecondaryColor = SecondaryColor,
+        UseElevatedColor = UseElevatedColor,
+        ElevatedColor = ElevatedColor,
+        LineStyle = LineStyle,
+        FillStyle = FillStyle,
+        Animate = Animate,
+        AnimateGradient = AnimateGradient,
+        Direction = Direction,
+        AnimationSpeed = AnimationSpeed,
+        CornerRadius = CornerRadius,
+        ShowTop = ShowTop,
+        ShowRight = ShowRight,
+        ShowBottom = ShowBottom,
+        ShowLeft = ShowLeft
+    };
 }
 
 public sealed class BorderSettings
@@ -71,13 +118,15 @@ public sealed class BorderSettings
         ElevatedColor = "#FFFF8C00"
     };
     public LayoutIndicatorSettings LayoutIndicator { get; set; } = new();
+    public KeyboardSettings Keyboard { get; set; } = new();
 
     public BorderSettings Copy() => new()
     {
         Enabled = Enabled,
         Active = Active.Copy(),
         Inactive = Inactive.Copy(),
-        LayoutIndicator = LayoutIndicator.Copy()
+        LayoutIndicator = LayoutIndicator.Copy(),
+        Keyboard = Keyboard.Copy()
     };
 
     public static MediaColor ParseColor(string? value, MediaColor fallback)

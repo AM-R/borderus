@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,6 +9,7 @@ using Borderus.Models;
 using Borderus.Native;
 using Borderus.Rendering;
 using Borderus.Services;
+using Microsoft.Win32;
 using Forms = System.Windows.Forms;
 
 namespace Borderus;
@@ -18,11 +19,14 @@ public partial class MainWindow : Window
     private readonly BorderSettings _settings;
     private readonly WindowBorderService _borderService;
     private readonly LayoutIndicatorService _layoutIndicatorService;
+    private readonly KeyboardService _keyboardService;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly DispatcherTimer _saveTimer;
     private readonly BorderRenderer _activePreviewRenderer = new();
     private readonly BorderRenderer _inactivePreviewRenderer = new();
     private Forms.ToolStripMenuItem? _enabledMenuItem;
+    private Forms.ContextMenuStrip? _trayMenu;
+    private WindowsThemePalette _theme;
     private bool _loading = true;
     private bool _exiting;
     private bool _editingActive = true;
@@ -35,6 +39,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ApplySystemTheme();
         AddPreviewRenderer(ActivePreviewHost, _activePreviewRenderer);
         AddPreviewRenderer(InactivePreviewHost, _inactivePreviewRenderer);
         Version? version = typeof(MainWindow).Assembly.GetName().Version;
@@ -46,10 +51,12 @@ public partial class MainWindow : Window
             _saveTimer.Stop();
             SettingsStore.Save(_settings);
         };
-        SourceInitialized += (_, _) => NativeMethods.EnableDarkTitleBar(new WindowInteropHelper(this).Handle);
+        SourceInitialized += (_, _) => ApplyTitleBarTheme();
+        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         LoadControls();
-        _borderService = new WindowBorderService(_settings);
-        _layoutIndicatorService = new LayoutIndicatorService(_settings);
+        _borderService = new WindowBorderService(Dispatcher, _settings);
+        _layoutIndicatorService = new LayoutIndicatorService(Dispatcher, _settings);
+        _keyboardService = new KeyboardService(_settings);
         _trayIcon = CreateTrayIcon();
         _loading = false;
         ApplySettings();
@@ -57,12 +64,9 @@ public partial class MainWindow : Window
 
     private Forms.NotifyIcon CreateTrayIcon()
     {
-        var menu = new Forms.ContextMenuStrip
-        {
-            BackColor = System.Drawing.Color.FromArgb(43, 43, 43),
-            ForeColor = System.Drawing.Color.FromArgb(244, 244, 244),
-            Renderer = new DarkMenuRenderer()
-        };
+        var menu = new Forms.ContextMenuStrip();
+        _trayMenu = menu;
+        ApplyTrayMenuTheme();
         menu.Items.Add("Открыть", null, (_, _) => ShowFromTray());
         _enabledMenuItem = new Forms.ToolStripMenuItem("Рамки включены", null, (_, _) => ToggleEnabled())
         {
@@ -83,6 +87,62 @@ public partial class MainWindow : Window
         return icon;
     }
 
+    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (_exiting || e.Category is not (UserPreferenceCategory.Color or UserPreferenceCategory.General
+            or UserPreferenceCategory.VisualStyle)) return;
+        Dispatcher.BeginInvoke(ApplySystemTheme);
+    }
+
+    private void ApplySystemTheme()
+    {
+        _theme = WindowsThemeService.Read();
+        SetColor("AccentColor", _theme.Accent);
+        SetBrush("AccentBrush", _theme.Accent);
+        SetBrush("AccentTextBrush", _theme.AccentText);
+        SetBrush("PageBrush", _theme.Page);
+        SetBrush("CardBrush", _theme.Card);
+        SetBrush("ControlBrush", _theme.Control);
+        SetBrush("ControlHoverBrush", _theme.ControlHover);
+        SetBrush("ControlPressedBrush", _theme.ControlPressed);
+        SetBrush("ControlBorderBrush", _theme.Border);
+        SetBrush("TextBrush", _theme.Text);
+        SetBrush("SecondaryTextBrush", _theme.SecondaryText);
+        SetBrush("DisabledTextBrush", _theme.DisabledText);
+        SetBrush("PreviewBrush", _theme.Preview);
+        SetBrush("InactiveTitleBrush", _theme.InactiveTitle);
+        ApplyTitleBarTheme();
+        ApplyTrayMenuTheme();
+    }
+
+    private static void SetColor(string key, System.Windows.Media.Color color)
+    {
+        System.Windows.Application.Current.Resources[key] = color;
+    }
+
+    private static void SetBrush(string key, System.Windows.Media.Color color)
+    {
+        System.Windows.Application.Current.Resources[key] = new SolidColorBrush(color);
+    }
+
+    private void ApplyTitleBarTheme()
+    {
+        nint handle = new WindowInteropHelper(this).Handle;
+        if (handle != 0) NativeMethods.SetDarkTitleBar(handle, _theme.IsDark);
+    }
+
+    private void ApplyTrayMenuTheme()
+    {
+        if (_trayMenu is null) return;
+        _trayMenu.BackColor = DrawingColor(_theme.Card);
+        _trayMenu.ForeColor = DrawingColor(_theme.Text);
+        _trayMenu.Renderer = new SystemMenuRenderer(_theme);
+        _trayMenu.Invalidate(true);
+    }
+
+    private static System.Drawing.Color DrawingColor(System.Windows.Media.Color color) =>
+        System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
+
     private void LoadControls()
     {
         EnabledCheckBox.IsChecked = _settings.Enabled;
@@ -97,6 +157,9 @@ public partial class MainWindow : Window
         SelectByTag(LayoutContentCombo, _settings.LayoutIndicator.Content.ToString());
         SelectByTag(LayoutAnchorCombo, _settings.LayoutIndicator.Anchor.ToString());
         LoadLayoutSideControls();
+        SelectByTag(RepeatDelayCombo, _settings.Keyboard.RepeatDelay.ToString());
+        SelectByTag(RussianSoundCombo, _settings.Keyboard.RussianSound.ToString());
+        SelectByTag(EnglishSoundCombo, _settings.Keyboard.EnglishSound.ToString());
         ProfileCombo.SelectedIndex = 0;
         LoadProfileControls();
     }
@@ -170,6 +233,11 @@ public partial class MainWindow : Window
         if (!_loading && IsLoaded) ApplySettings();
     }
 
+    private void KeyboardSettingChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && IsLoaded) ApplySettings();
+    }
+
     private void ApplySettings()
     {
         _settings.Enabled = EnabledCheckBox.IsChecked == true;
@@ -191,6 +259,9 @@ public partial class MainWindow : Window
         _settings.LayoutIndicator.Anchor = ReadTag(LayoutAnchorCombo, LayoutIndicatorAnchor.Field);
         _settings.LayoutIndicator.OffsetX = LayoutOffsetXSlider.Value;
         _settings.LayoutIndicator.OffsetY = LayoutOffsetYSlider.Value;
+        _settings.Keyboard.RepeatDelay = ReadTag(RepeatDelayCombo, KeyboardRepeatDelay.System);
+        _settings.Keyboard.RussianSound = ReadTag(RussianSoundCombo, KeySound.None);
+        _settings.Keyboard.EnglishSound = ReadTag(EnglishSoundCombo, KeySound.None);
         if (_enabledMenuItem is not null) _enabledMenuItem.Checked = _settings.Enabled;
         ThicknessValue.Text = $"{profile.Thickness:0} px";
         PaddingValue.Text = $"{profile.Padding:+0;-0;0} px";
@@ -204,6 +275,7 @@ public partial class MainWindow : Window
         _saveTimer.Start();
         _borderService.Apply(_settings);
         _layoutIndicatorService.Apply(_settings);
+        _keyboardService.Apply(_settings);
         _activePreviewRenderer.Update(_settings, 0, true, false);
         _inactivePreviewRenderer.Update(_settings, 0, false, false);
     }
@@ -394,10 +466,12 @@ public partial class MainWindow : Window
         Dispatcher.Invoke(() =>
         {
             _exiting = true;
+            SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
             _saveTimer.Stop();
             SettingsStore.Save(_settings);
             _borderService.Dispose();
             _layoutIndicatorService.Dispose();
+            _keyboardService.Dispose();
             _trayIcon.Visible = false;
             _trayIcon.Dispose();
             Close();
@@ -405,28 +479,44 @@ public partial class MainWindow : Window
         });
     }
 
-    private sealed class DarkMenuColorTable : Forms.ProfessionalColorTable
+    private sealed class SystemMenuColorTable(WindowsThemePalette theme) : Forms.ProfessionalColorTable
     {
-        public override System.Drawing.Color ToolStripDropDownBackground => System.Drawing.Color.FromArgb(43, 43, 43);
-        public override System.Drawing.Color ImageMarginGradientBegin => System.Drawing.Color.FromArgb(43, 43, 43);
-        public override System.Drawing.Color ImageMarginGradientMiddle => System.Drawing.Color.FromArgb(43, 43, 43);
-        public override System.Drawing.Color ImageMarginGradientEnd => System.Drawing.Color.FromArgb(43, 43, 43);
-        public override System.Drawing.Color MenuItemSelected => System.Drawing.Color.FromArgb(62, 62, 62);
-        public override System.Drawing.Color MenuItemBorder => System.Drawing.Color.FromArgb(62, 62, 62);
-        public override System.Drawing.Color MenuBorder => System.Drawing.Color.FromArgb(82, 82, 82);
-        public override System.Drawing.Color SeparatorDark => System.Drawing.Color.FromArgb(92, 92, 92);
-        public override System.Drawing.Color SeparatorLight => System.Drawing.Color.FromArgb(92, 92, 92);
+        public override System.Drawing.Color ToolStripDropDownBackground => DrawingColor(theme.Card);
+        public override System.Drawing.Color ImageMarginGradientBegin => DrawingColor(theme.Card);
+        public override System.Drawing.Color ImageMarginGradientMiddle => DrawingColor(theme.Card);
+        public override System.Drawing.Color ImageMarginGradientEnd => DrawingColor(theme.Card);
+        public override System.Drawing.Color MenuItemSelected => theme.IsDark
+            ? System.Drawing.Color.FromArgb(55, 55, 55)
+            : DrawingColor(theme.ControlHover);
+        public override System.Drawing.Color MenuItemBorder => DrawingColor(theme.Accent);
+        public override System.Drawing.Color MenuBorder => DrawingColor(theme.Border);
+        public override System.Drawing.Color SeparatorDark => DrawingColor(theme.Border);
+        public override System.Drawing.Color SeparatorLight => DrawingColor(theme.Border);
     }
 
-    private sealed class DarkMenuRenderer : Forms.ToolStripProfessionalRenderer
+    private sealed class SystemMenuRenderer : Forms.ToolStripProfessionalRenderer
     {
-        public DarkMenuRenderer() : base(new DarkMenuColorTable()) { }
+        private readonly WindowsThemePalette _theme;
+
+        public SystemMenuRenderer(WindowsThemePalette theme) : base(new SystemMenuColorTable(theme)) => _theme = theme;
+
+        protected override void OnRenderMenuItemBackground(Forms.ToolStripItemRenderEventArgs e)
+        {
+            if (!_theme.IsDark || !e.Item.Selected)
+            {
+                base.OnRenderMenuItemBackground(e);
+                return;
+            }
+
+            using var background = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(55, 55, 55));
+            e.Graphics.FillRectangle(background, new System.Drawing.Rectangle(System.Drawing.Point.Empty, e.Item.Size));
+        }
 
         protected override void OnRenderItemText(Forms.ToolStripItemTextRenderEventArgs e)
         {
             e.TextColor = e.Item.Enabled
-                ? System.Drawing.Color.FromArgb(244, 244, 244)
-                : System.Drawing.Color.FromArgb(120, 120, 120);
+                ? DrawingColor(_theme.Text)
+                : DrawingColor(_theme.DisabledText);
             base.OnRenderItemText(e);
         }
 
@@ -434,9 +524,9 @@ public partial class MainWindow : Window
         {
             var box = new System.Drawing.Rectangle(e.ImageRectangle.X + 1, e.ImageRectangle.Y + 1,
                 Math.Max(14, e.ImageRectangle.Width - 2), Math.Max(14, e.ImageRectangle.Height - 2));
-            using var background = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(62, 62, 62));
-            using var border = new System.Drawing.Pen(System.Drawing.Color.FromArgb(110, 110, 110));
-            using var check = new System.Drawing.Pen(System.Drawing.Color.White, 2f)
+            using var background = new System.Drawing.SolidBrush(DrawingColor(_theme.Accent));
+            using var border = new System.Drawing.Pen(DrawingColor(_theme.AccentPressed));
+            using var check = new System.Drawing.Pen(DrawingColor(_theme.AccentText), 2f)
             {
                 StartCap = System.Drawing.Drawing2D.LineCap.Round,
                 EndCap = System.Drawing.Drawing2D.LineCap.Round

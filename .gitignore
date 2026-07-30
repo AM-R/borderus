@@ -1,4 +1,24 @@
+# Build outputs
 bin/
 obj/
 artifacts/
-.codegraph/
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user
+
+# NuGet
+packages/
+*.nupkg
+
+# User-specific settings (already handled by AppData, but in case)
+settings.json
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Release artifacts
+*.zip
