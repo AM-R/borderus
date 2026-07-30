@@ -19,6 +19,8 @@ internal sealed class LayoutIndicatorService : IDisposable
     private readonly nint[] _hooks = new nint[4];
     private LayoutIndicatorSettings _settings;
     private int _refreshing;
+    private int _renderQueued;
+    private PendingUpdate? _pendingUpdate;
     private bool _disposed;
 
     public LayoutIndicatorService(Dispatcher dispatcher, BorderSettings settings)
@@ -37,7 +39,9 @@ internal sealed class LayoutIndicatorService : IDisposable
             NativeMethods.EventSystemMoveSizeEnd, 0, _eventCallback, 0, 0, flags);
 
         _moveTimer = new System.Threading.Timer(_ => QueueRefresh(), null, Timeout.Infinite, Timeout.Infinite);
-        _refreshTimer = new System.Threading.Timer(_ => Refresh(), null, 0, 16);
+        // UI Automation calls into the target process. Polling terminal controls at 60 Hz
+        // can starve PowerShell's accessibility provider and make both apps feel delayed.
+        _refreshTimer = new System.Threading.Timer(_ => Refresh(), null, 0, 50);
     }
 
     public void Apply(BorderSettings settings)
@@ -132,16 +136,26 @@ internal sealed class LayoutIndicatorService : IDisposable
 
             (string language, string region) = GetLayout(threadId);
             if (foreground != NativeMethods.GetForegroundWindow()) return;
-            _dispatcher.BeginInvoke(DispatcherPriority.Send, () =>
-            {
-                if (!_disposed && _settings.Enabled)
-                    _overlay.Update(region, language, settings, x, y, scale);
-            });
+            QueueUpdate(new PendingUpdate(region, language, settings, x, y, scale));
         }
         finally
         {
             Interlocked.Exchange(ref _refreshing, 0);
         }
+    }
+
+    private void QueueUpdate(PendingUpdate update)
+    {
+        _pendingUpdate = update;
+        if (Interlocked.Exchange(ref _renderQueued, 1) != 0) return;
+        _dispatcher.BeginInvoke(DispatcherPriority.Render, () =>
+        {
+            Interlocked.Exchange(ref _renderQueued, 0);
+            PendingUpdate? latest = _pendingUpdate;
+            if (!_disposed && _settings.Enabled && latest is not null)
+                _overlay.Update(latest.Region, latest.Language, latest.Settings,
+                    latest.X, latest.Y, latest.Scale);
+        });
     }
 
     private void QueueHide() => _dispatcher.BeginInvoke(DispatcherPriority.Send, () =>
@@ -233,6 +247,9 @@ internal sealed class LayoutIndicatorService : IDisposable
         };
         return true;
     }
+
+    private sealed record PendingUpdate(string Region, string Language,
+        LayoutIndicatorSettings Settings, int X, int Y, double Scale);
 
     private static NativeMethods.Rect ToNativeRect(System.Windows.Rect rect) => new()
     {
