@@ -10,7 +10,7 @@
     <ApplicationIcon>assets\Borderus.ico</ApplicationIcon>
     <AssemblyName>Borderus</AssemblyName>
     <RootNamespace>Borderus</RootNamespace>
-    <Version>1.2.24</Version>
+    <Version>1.2.25</Version>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="assets\Borderus.ico" />
