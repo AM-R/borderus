@@ -214,22 +214,9 @@
         <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
           <StackPanel>
             <TextBlock Text="Подсветка клавиатуры" FontSize="20" Margin="0,0,0,10" />
-            <TextBlock Text="Периодически отправляет безопасное нажатие без ввода текста. Прошивка некоторых ноутбуков реагирует только на физические HID-события, поэтому сначала проверьте каждый способ кнопкой «Тест»." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
-            <CheckBox x:Name="BacklightEnabledCheckBox" Content="Поддерживать подсветку включённой" Checked="BacklightSettingChanged" Unchecked="BacklightSettingChanged" Margin="0,0,0,12" />
-            <TextBlock Text="Интервал" Foreground="{DynamicResource SecondaryTextBrush}" />
-            <Grid Margin="0,4,0,14"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Slider x:Name="BacklightIntervalSlider" Minimum="5" Maximum="120" Value="20" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="BacklightSettingChanged" /><TextBlock x:Name="BacklightIntervalValue" Grid.Column="1" Text="20 с" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
-            <TextBlock Text="Рабочий способ" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
-            <ComboBox x:Name="BacklightMethodCombo" SelectionChanged="BacklightSettingChanged" Margin="0,0,0,14">
-              <ComboBoxItem Content="F15 — скрытая неиспользуемая клавиша" Tag="F15" />
-              <ComboBoxItem Content="Левый Shift — без ввода символа" Tag="Shift" />
-              <ComboBoxItem Content="Scroll Lock — двойное нажатие с восстановлением" Tag="ScrollLock" />
-            </ComboBox>
-            <UniformGrid Columns="3">
-              <Button Content="Тест F15" Tag="F15" Click="TestBacklightMethod" Margin="0,0,8,0" />
-              <Button Content="Тест Shift" Tag="Shift" Click="TestBacklightMethod" Margin="4,0" />
-              <Button Content="Тест Scroll Lock" Tag="ScrollLock" Click="TestBacklightMethod" Margin="8,0,0,0" />
-            </UniformGrid>
-            <TextBlock x:Name="BacklightStatusText" Text="Нажмите тест и посмотрите, загорелась ли клавиатура." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,14,0,0" />
+            <TextBlock Text="Приложение не отправляет синтетические нажатия клавиш. Диагностика проверяет только доступные Windows-интерфейсы ACPI, WMI и HID и не посылает команды прошивке." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
+            <Button Content="Проверить интерфейсы ноутбука" Click="DiagnoseBacklight" />
+            <TextBlock x:Name="BacklightStatusText" Text="Диагностика ещё не запускалась." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,14,0,0" />
           </StackPanel>
         </Border>
       </TabItem>

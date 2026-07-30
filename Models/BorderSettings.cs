@@ -12,22 +12,6 @@ public enum LayoutIndicatorContent { FlagOnly, FlagAndCode }
 public enum LayoutIndicatorAnchor { Field, Caret }
 public enum LayoutIndicatorSide { Top, Right, Bottom, Left }
 public enum KeySound { None, Soft, Click, Mechanical, SystemAsterisk, SystemBeep, SystemExclamation, SystemHand, Custom }
-public enum BacklightKeepAliveMethod { F15, Shift, ScrollLock }
-
-public sealed class BacklightSettings
-{
-    public bool Enabled { get; set; }
-    public int IntervalSeconds { get; set; } = 20;
-    public BacklightKeepAliveMethod Method { get; set; } = BacklightKeepAliveMethod.F15;
-
-    public BacklightSettings Copy() => new()
-    {
-        Enabled = Enabled,
-        IntervalSeconds = IntervalSeconds,
-        Method = Method
-    };
-}
-
 public sealed class KeyboardSettings
 {
     public int RepeatDelayMs { get; set; } = 250;
@@ -139,7 +123,6 @@ public sealed class BorderSettings
     };
     public LayoutIndicatorSettings LayoutIndicator { get; set; } = new();
     public KeyboardSettings Keyboard { get; set; } = new();
-    public BacklightSettings Backlight { get; set; } = new();
 
     public BorderSettings Copy() => new()
     {
@@ -147,8 +130,7 @@ public sealed class BorderSettings
         Active = Active.Copy(),
         Inactive = Inactive.Copy(),
         LayoutIndicator = LayoutIndicator.Copy(),
-        Keyboard = Keyboard.Copy(),
-        Backlight = Backlight.Copy()
+        Keyboard = Keyboard.Copy()
     };
 
     public static MediaColor ParseColor(string? value, MediaColor fallback)

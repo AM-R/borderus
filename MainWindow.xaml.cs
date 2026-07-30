@@ -20,7 +20,6 @@ public partial class MainWindow : Window
     private readonly WindowBorderService _borderService;
     private readonly LayoutIndicatorService _layoutIndicatorService;
     private readonly KeyboardService _keyboardService;
-    private readonly KeyboardBacklightService _backlightService;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly DispatcherTimer _saveTimer;
     private readonly BorderRenderer _activePreviewRenderer = new();
@@ -58,7 +57,6 @@ public partial class MainWindow : Window
         _borderService = new WindowBorderService(Dispatcher, _settings);
         _layoutIndicatorService = new LayoutIndicatorService(Dispatcher, _settings);
         _keyboardService = new KeyboardService(_settings);
-        _backlightService = new KeyboardBacklightService(_settings);
         _trayIcon = CreateTrayIcon();
         _loading = false;
         ApplySettings();
@@ -163,9 +161,6 @@ public partial class MainWindow : Window
         RepeatRateSlider.Value = Math.Clamp(_settings.Keyboard.RepeatIntervalMs, 5, 250);
         SelectByTag(RussianSoundCombo, _settings.Keyboard.RussianSound.ToString());
         SelectByTag(EnglishSoundCombo, _settings.Keyboard.EnglishSound.ToString());
-        BacklightEnabledCheckBox.IsChecked = _settings.Backlight.Enabled;
-        BacklightIntervalSlider.Value = Math.Clamp(_settings.Backlight.IntervalSeconds, 5, 120);
-        SelectByTag(BacklightMethodCombo, _settings.Backlight.Method.ToString());
         ProfileCombo.SelectedIndex = 0;
         LoadProfileControls();
     }
@@ -257,17 +252,13 @@ public partial class MainWindow : Window
 
     private void ChooseEnglishSound(object sender, RoutedEventArgs e) => ChooseKeyboardSound(false);
 
-    private void BacklightSettingChanged(object sender, RoutedEventArgs e)
+    private async void DiagnoseBacklight(object sender, RoutedEventArgs e)
     {
-        if (_loading || !IsLoaded) return;
-        ApplySettings();
-    }
-
-    private void TestBacklightMethod(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.Button { Tag: string tag } || !Enum.TryParse(tag, out BacklightKeepAliveMethod method)) return;
-        _backlightService.Test(method);
-        BacklightStatusText.Text = $"Отправлен тест «{tag}». Если подсветка не включилась, попробуйте следующий способ.";
+        if (sender is System.Windows.Controls.Button button) button.IsEnabled = false;
+        BacklightStatusText.Text = "Проверка ACPI, WMI и HID-интерфейсов…";
+        try { BacklightStatusText.Text = await KeyboardBacklightService.DiagnoseAsync(); }
+        catch (Exception ex) { BacklightStatusText.Text = $"Ошибка диагностики: {ex.Message}"; }
+        finally { if (sender is System.Windows.Controls.Button finishedButton) finishedButton.IsEnabled = true; }
     }
 
     private void ChooseKeyboardSound(bool russian)
@@ -318,9 +309,6 @@ public partial class MainWindow : Window
         _settings.Keyboard.RepeatIntervalMs = (int)RepeatRateSlider.Value;
         _settings.Keyboard.RussianSound = ReadTag(RussianSoundCombo, KeySound.None);
         _settings.Keyboard.EnglishSound = ReadTag(EnglishSoundCombo, KeySound.None);
-        _settings.Backlight.Enabled = BacklightEnabledCheckBox.IsChecked == true;
-        _settings.Backlight.IntervalSeconds = (int)BacklightIntervalSlider.Value;
-        _settings.Backlight.Method = ReadTag(BacklightMethodCombo, BacklightKeepAliveMethod.F15);
         if (_enabledMenuItem is not null) _enabledMenuItem.Checked = _settings.Enabled;
         ThicknessValue.Text = $"{profile.Thickness:0} px";
         PaddingValue.Text = $"{profile.Padding:+0;-0;0} px";
@@ -331,14 +319,12 @@ public partial class MainWindow : Window
         LayoutOffsetYValue.Text = $"{_settings.LayoutIndicator.OffsetY:0}";
         RepeatDelayValue.Text = $"{_settings.Keyboard.RepeatDelayMs} мс";
         RepeatRateValue.Text = $"{_settings.Keyboard.RepeatIntervalMs} мс";
-        BacklightIntervalValue.Text = $"{_settings.Backlight.IntervalSeconds} с";
         UpdateConditionalControls();
         _saveTimer.Stop();
         _saveTimer.Start();
         _borderService.Apply(_settings);
         _layoutIndicatorService.Apply(_settings);
         _keyboardService.Apply(_settings);
-        _backlightService.Apply(_settings);
         _activePreviewRenderer.Update(_settings, 0, true, false);
         _inactivePreviewRenderer.Update(_settings, 0, false, false);
     }
@@ -535,7 +521,6 @@ public partial class MainWindow : Window
             _borderService.Dispose();
             _layoutIndicatorService.Dispose();
             _keyboardService.Dispose();
-            _backlightService.Dispose();
             _trayIcon.Visible = false;
             _trayIcon.Dispose();
             Close();
