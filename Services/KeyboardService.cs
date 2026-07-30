@@ -11,6 +11,7 @@ internal sealed class KeyboardService : IDisposable
     private const nuint SyntheticMarker = 0x424F5244;
     private readonly NativeMethods.LowLevelKeyboardProc _keyboardCallback;
     private readonly Dictionary<KeySound, SoundPlayer> _players = new();
+    private readonly Dictionary<string, SoundPlayer> _filePlayers = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _repeatLock = new();
     private CancellationTokenSource? _repeatCancellation;
     private KeyboardSettings _settings;
@@ -27,26 +28,26 @@ internal sealed class KeyboardService : IDisposable
 
     public void Apply(BorderSettings settings) => _settings = settings.Keyboard.Copy();
 
-    public void Preview(KeySound sound)
+    public void Preview(KeySound sound, string? customFile = null)
     {
-        if (sound != KeySound.None) Play(sound);
+        if (sound != KeySound.None) Play(sound, customFile);
     }
 
     private nint OnKeyboardEvent(int code, nint message, nint data)
     {
         if (_disposed || code < 0) return NativeMethods.CallNextHookEx(_hook, code, message, data);
         NativeMethods.LowLevelKeyboardInput input = Marshal.PtrToStructure<NativeMethods.LowLevelKeyboardInput>(data);
-        if ((input.Flags & NativeMethods.LlkhfInjected) != 0 && input.ExtraInfo == SyntheticMarker)
+        if ((input.Flags & NativeMethods.LlkhfInjected) != 0)
             return NativeMethods.CallNextHookEx(_hook, code, message, data);
 
         int key = (int)input.VirtualKey;
         bool keyDown = message == NativeMethods.WmKeyDown || message == NativeMethods.WmSysKeyDown;
         bool keyUp = message == NativeMethods.WmKeyUp || message == NativeMethods.WmSysKeyUp;
-        if (IsCharacterKey(key) && keyDown)
+        if (IsRepeatableKey(key) && keyDown && !IsSystemShortcut())
         {
             if (Interlocked.CompareExchange(ref _heldKey, key, 0) == 0)
             {
-                PlayCurrentLayoutSound();
+                if (IsCharacterKey(key)) PlayCurrentLayoutSound();
                 StartRepeat(key);
             }
             // Suppress Windows' own repeats. The first physical key-down still reaches the target.
@@ -72,7 +73,7 @@ internal sealed class KeyboardService : IDisposable
                 {
                     NativeMethods.keybd_event((byte)key, 0, 0, SyntheticMarker);
                     NativeMethods.keybd_event((byte)key, 0, NativeMethods.KeyeventfKeyup, SyntheticMarker);
-                    PlayCurrentLayoutSound();
+                    if (IsCharacterKey(key)) PlayCurrentLayoutSound();
                     await Task.Delay(Math.Clamp(_settings.RepeatIntervalMs, 5, 250), cancellation.Token);
                 }
             }
@@ -97,10 +98,12 @@ internal sealed class KeyboardService : IDisposable
         nint foreground = NativeMethods.GetForegroundWindow();
         uint threadId = NativeMethods.GetWindowThreadProcessId(foreground, out _);
         int language = (int)(NativeMethods.GetKeyboardLayout(threadId).ToInt64() & 0xffff);
-        Play(language == 0x0419 ? _settings.RussianSound : _settings.EnglishSound);
+        bool russian = language == 0x0419;
+        Play(russian ? _settings.RussianSound : _settings.EnglishSound,
+            russian ? _settings.RussianSoundFile : _settings.EnglishSoundFile);
     }
 
-    private void Play(KeySound sound)
+    private void Play(KeySound sound, string? customFile = null)
     {
         switch (sound)
         {
@@ -109,6 +112,24 @@ internal sealed class KeyboardService : IDisposable
             case KeySound.SystemBeep: SystemSounds.Beep.Play(); return;
             case KeySound.SystemExclamation: SystemSounds.Exclamation.Play(); return;
             case KeySound.SystemHand: SystemSounds.Hand.Play(); return;
+            case KeySound.Custom:
+                if (!string.IsNullOrWhiteSpace(customFile) && File.Exists(customFile))
+                {
+                    try
+                    {
+                        if (!_filePlayers.TryGetValue(customFile, out SoundPlayer? customPlayer))
+                        {
+                            customPlayer = new SoundPlayer(customFile);
+                            customPlayer.Load();
+                            _filePlayers.Add(customFile, customPlayer);
+                        }
+                        customPlayer.Stop();
+                        customPlayer.Play();
+                    }
+                    catch (InvalidOperationException) { }
+                    catch (IOException) { }
+                }
+                return;
         }
         SoundPlayer player = GetPlayer(sound);
         player.Stop();
@@ -126,6 +147,14 @@ internal sealed class KeyboardService : IDisposable
 
     private static bool IsCharacterKey(int key) =>
         key is >= 0x30 and <= 0x5A or >= 0x60 and <= 0x6F or >= 0xBA and <= 0xE2 || key == 0x20;
+
+    private static bool IsRepeatableKey(int key) => IsCharacterKey(key) ||
+        key is 0x08 or 0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28 or 0x2E;
+
+    private static bool IsSystemShortcut() =>
+        IsPressed(0x11) || IsPressed(0x12) || IsPressed(0x5B) || IsPressed(0x5C);
+
+    private static bool IsPressed(int key) => (NativeMethods.GetAsyncKeyState(key) & 0x8000) != 0;
 
     private static byte[] CreateWave(KeySound sound)
     {
@@ -159,6 +188,8 @@ internal sealed class KeyboardService : IDisposable
         StopRepeat();
         if (_hook != 0) NativeMethods.UnhookWindowsHookEx(_hook);
         foreach (SoundPlayer player in _players.Values) player.Dispose();
+        foreach (SoundPlayer player in _filePlayers.Values) player.Dispose();
         _players.Clear();
+        _filePlayers.Clear();
     }
 }

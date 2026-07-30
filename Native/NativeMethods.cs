@@ -56,6 +56,9 @@ internal static class NativeMethods
     internal static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, nuint extraInfo);
 
     [DllImport("user32.dll")]
+    internal static extern short GetAsyncKeyState(int virtualKey);
+
+    [DllImport("user32.dll")]
     internal static extern nint SetWindowsHookEx(int hookId, LowLevelKeyboardProc callback, nint module, uint threadId);
 
     [DllImport("user32.dll")]

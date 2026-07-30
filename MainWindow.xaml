@@ -186,9 +186,9 @@
           <StackPanel>
             <TextBlock Text="Клавиатура" FontSize="20" Margin="0,0,0,12" />
             <TextBlock Text="Задержка до начала повтора" Foreground="{DynamicResource SecondaryTextBrush}" />
-            <Grid Margin="0,4,0,12"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" ValueChanged="SettingChanged" /><TextBlock x:Name="RepeatDelayValue" HorizontalAlignment="Right" /></Grid>
+            <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="Сбросить: 250 мс" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatDelay" /><Grid Grid.Column="1"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" ValueChanged="SettingChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
             <TextBlock Text="Скорость после начала повтора" Foreground="{DynamicResource SecondaryTextBrush}" />
-            <Grid Margin="0,4,0,8"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" ValueChanged="SettingChanged" /><TextBlock x:Name="RepeatRateValue" HorizontalAlignment="Right" /></Grid>
+            <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="Сбросить: 25 мс" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatRate" /><Grid Grid.Column="1"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" ValueChanged="SettingChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
           </StackPanel>
         </Border>
       </TabItem>
@@ -199,12 +199,14 @@
             <TextBlock Text="Звук воспроизводится один раз при нажатии символа. Повторное нажатие перезапускает звук без наложения артефактов." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
             <TextBlock Text="Русская раскладка" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
             <ComboBox x:Name="RussianSoundCombo" SelectionChanged="KeyboardSettingChanged" Margin="0,0,0,12">
-              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Мягкий" Tag="Soft" /><ComboBoxItem Content="Щелчок" Tag="Click" /><ComboBoxItem Content="Механический" Tag="Mechanical" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" />
+              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" /><ComboBoxItem Content="Свой WAV-файл" Tag="Custom" />
             </ComboBox>
+            <Button Content="Выбрать WAV для русской раскладки…" Click="ChooseRussianSound" Margin="0,0,0,12" />
             <TextBlock Text="Английская раскладка" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
             <ComboBox x:Name="EnglishSoundCombo" SelectionChanged="KeyboardSettingChanged">
-              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Мягкий" Tag="Soft" /><ComboBoxItem Content="Щелчок" Tag="Click" /><ComboBoxItem Content="Механический" Tag="Mechanical" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" />
+              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" /><ComboBoxItem Content="Свой WAV-файл" Tag="Custom" />
             </ComboBox>
+            <Button Content="Выбрать WAV для английской раскладки…" Click="ChooseEnglishSound" Margin="0,12,0,0" />
           </StackPanel>
         </Border>
       </TabItem>

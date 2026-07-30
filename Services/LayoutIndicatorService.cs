@@ -109,17 +109,26 @@ internal sealed class LayoutIndicatorService : IDisposable
                 caretRect = automationCaret;
                 hasCaret = true;
             }
+            NativeMethods.Rect fallbackField = default;
+            if (!hasCaret && !hasAutomationField)
+            {
+                nint fallbackWindow = hasGuiInfo && info.FocusWindow != 0 ? info.FocusWindow : foreground;
+                if (NativeMethods.GetWindowRect(fallbackWindow, out fallbackField) &&
+                    fallbackField.Width >= 40 && fallbackField.Height >= 14)
+                    hasAutomationField = true;
+            }
             if (!hasCaret && !hasAutomationField)
             {
                 QueueHide();
                 return;
             }
 
-            NativeMethods.Rect anchorRect = hasCaret ? caretRect : automationField;
+            NativeMethods.Rect anchorRect = hasCaret ? caretRect :
+                automationField.Width > 0 ? automationField : fallbackField;
             if (settings.Anchor == LayoutIndicatorAnchor.Field)
             {
                 if (hasAutomationField)
-                    anchorRect = automationField;
+                    anchorRect = automationField.Width > 0 ? automationField : fallbackField;
                 else if (hasGuiInfo && info.FocusWindow != 0 && info.FocusWindow != foreground &&
                     NativeMethods.GetWindowRect(info.FocusWindow, out var focusRect) &&
                     focusRect.Width >= 40 && focusRect.Height >= 14)

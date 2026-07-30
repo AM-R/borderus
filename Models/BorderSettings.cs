@@ -11,7 +11,7 @@ public enum LayoutIndicatorPlacement { Floating, Inside }
 public enum LayoutIndicatorContent { FlagOnly, FlagAndCode }
 public enum LayoutIndicatorAnchor { Field, Caret }
 public enum LayoutIndicatorSide { Top, Right, Bottom, Left }
-public enum KeySound { None, Soft, Click, Mechanical, SystemAsterisk, SystemBeep, SystemExclamation, SystemHand }
+public enum KeySound { None, Soft, Click, Mechanical, SystemAsterisk, SystemBeep, SystemExclamation, SystemHand, Custom }
 
 public sealed class KeyboardSettings
 {
@@ -19,13 +19,17 @@ public sealed class KeyboardSettings
     public int RepeatIntervalMs { get; set; } = 25;
     public KeySound RussianSound { get; set; }
     public KeySound EnglishSound { get; set; }
+    public string RussianSoundFile { get; set; } = string.Empty;
+    public string EnglishSoundFile { get; set; } = string.Empty;
 
     public KeyboardSettings Copy() => new()
     {
         RepeatDelayMs = RepeatDelayMs,
         RepeatIntervalMs = RepeatIntervalMs,
         RussianSound = RussianSound,
-        EnglishSound = EnglishSound
+        EnglishSound = EnglishSound,
+        RussianSoundFile = RussianSoundFile,
+        EnglishSoundFile = EnglishSoundFile
     };
 }
 

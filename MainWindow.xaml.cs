@@ -239,9 +239,40 @@ public partial class MainWindow : Window
         if (_loading || !IsLoaded) return;
         ApplySettings();
         if (sender == RussianSoundCombo)
-            _keyboardService.Preview(_settings.Keyboard.RussianSound);
+            _keyboardService.Preview(_settings.Keyboard.RussianSound, _settings.Keyboard.RussianSoundFile);
         else if (sender == EnglishSoundCombo)
-            _keyboardService.Preview(_settings.Keyboard.EnglishSound);
+            _keyboardService.Preview(_settings.Keyboard.EnglishSound, _settings.Keyboard.EnglishSoundFile);
+    }
+
+    private void ResetRepeatDelay(object sender, RoutedEventArgs e) => RepeatDelaySlider.Value = 250;
+
+    private void ResetRepeatRate(object sender, RoutedEventArgs e) => RepeatRateSlider.Value = 25;
+
+    private void ChooseRussianSound(object sender, RoutedEventArgs e) => ChooseKeyboardSound(true);
+
+    private void ChooseEnglishSound(object sender, RoutedEventArgs e) => ChooseKeyboardSound(false);
+
+    private void ChooseKeyboardSound(bool russian)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = russian ? "Звук русской раскладки" : "Звук английской раскладки",
+            Filter = "Звуки WAV (*.wav)|*.wav",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        if (russian)
+        {
+            _settings.Keyboard.RussianSoundFile = dialog.FileName;
+            SelectByTag(RussianSoundCombo, KeySound.Custom.ToString());
+        }
+        else
+        {
+            _settings.Keyboard.EnglishSoundFile = dialog.FileName;
+            SelectByTag(EnglishSoundCombo, KeySound.Custom.ToString());
+        }
+        ApplySettings();
+        _keyboardService.Preview(KeySound.Custom, dialog.FileName);
     }
 
     private void ApplySettings()
