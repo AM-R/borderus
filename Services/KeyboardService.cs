@@ -12,6 +12,7 @@ internal sealed class KeyboardService : IDisposable
     private readonly NativeMethods.LowLevelKeyboardProc _keyboardCallback;
     private readonly Dictionary<KeySound, SoundPlayer> _players = new();
     private readonly Dictionary<string, SoundPlayer> _filePlayers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<int> _pressedKeys = new();
     private readonly object _repeatLock = new();
     private CancellationTokenSource? _repeatCancellation;
     private KeyboardSettings _settings;
@@ -26,24 +27,34 @@ internal sealed class KeyboardService : IDisposable
         _hook = NativeMethods.SetWindowsHookEx(NativeMethods.WhKeyboardLl, _keyboardCallback, 0, 0);
     }
 
-    public void Apply(BorderSettings settings) => _settings = settings.Keyboard.Copy();
+    public void Apply(BorderSettings settings)
+    {
+        _settings = settings.Keyboard.Copy();
+        if (_settings.RepeatEnabled) return;
+        Interlocked.Exchange(ref _heldKey, 0);
+        StopRepeat();
+    }
 
     public void Preview(KeySound sound, string? customFile = null)
     {
-        if (sound != KeySound.None) Play(sound, customFile);
+        if (_settings.SoundEnabled && sound != KeySound.None) Play(sound, customFile);
     }
 
     private nint OnKeyboardEvent(int code, nint message, nint data)
     {
         if (_disposed || code < 0) return NativeMethods.CallNextHookEx(_hook, code, message, data);
         NativeMethods.LowLevelKeyboardInput input = Marshal.PtrToStructure<NativeMethods.LowLevelKeyboardInput>(data);
-        if ((input.Flags & NativeMethods.LlkhfInjected) != 0)
+        if (input.ExtraInfo == SyntheticMarker)
             return NativeMethods.CallNextHookEx(_hook, code, message, data);
 
         int key = (int)input.VirtualKey;
         bool keyDown = message == NativeMethods.WmKeyDown || message == NativeMethods.WmSysKeyDown;
         bool keyUp = message == NativeMethods.WmKeyUp || message == NativeMethods.WmSysKeyUp;
-        if (IsRepeatableKey(key) && keyDown && !IsSystemShortcut())
+        bool firstKeyDown = keyDown && _pressedKeys.Add(key);
+        if (keyUp) _pressedKeys.Remove(key);
+        if (firstKeyDown) TrackStandaloneConsoleLayoutSwitch(key);
+
+        if (_settings.RepeatEnabled && IsRepeatableKey(key) && keyDown && !IsSystemShortcut())
         {
             if (Interlocked.CompareExchange(ref _heldKey, key, 0) == 0)
             {
@@ -54,8 +65,10 @@ internal sealed class KeyboardService : IDisposable
             else if (Volatile.Read(ref _heldKey) == key)
                 return 1;
         }
-        else if (keyUp && Interlocked.CompareExchange(ref _heldKey, 0, key) == key)
+        else if (_settings.RepeatEnabled && keyUp && Interlocked.CompareExchange(ref _heldKey, 0, key) == key)
             StopRepeat();
+        else if (!_settings.RepeatEnabled && firstKeyDown && IsCharacterKey(key))
+            PlayCurrentLayoutSound();
         return NativeMethods.CallNextHookEx(_hook, code, message, data);
     }
 
@@ -95,9 +108,9 @@ internal sealed class KeyboardService : IDisposable
 
     private void PlayCurrentLayoutSound()
     {
+        if (!_settings.SoundEnabled) return;
         nint foreground = NativeMethods.GetForegroundWindow();
-        uint threadId = NativeMethods.GetWindowThreadProcessId(foreground, out _);
-        int language = (int)(NativeMethods.GetKeyboardLayout(threadId).ToInt64() & 0xffff);
+        int language = NativeMethods.GetKeyboardLanguageId(foreground);
         bool russian = language == 0x0419;
         Play(russian ? _settings.RussianSound : _settings.EnglishSound,
             russian ? _settings.RussianSoundFile : _settings.EnglishSoundFile);
@@ -150,6 +163,28 @@ internal sealed class KeyboardService : IDisposable
 
     private static bool IsRepeatableKey(int key) => IsCharacterKey(key) ||
         key is 0x08 or 0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28 or 0x2E;
+
+    private void TrackStandaloneConsoleLayoutSwitch(int key)
+    {
+        bool shift = IsTrackedPressed(0x10, 0xA0, 0xA1);
+        bool control = IsTrackedPressed(0x11, 0xA2, 0xA3);
+        bool alt = IsTrackedPressed(0x12, 0xA4, 0xA5);
+        bool windows = _pressedKeys.Contains(0x5B) || _pressedKeys.Contains(0x5C);
+        bool winSpace = key == 0x20 && windows;
+        bool modifierSwitch = shift && (control || alt) &&
+            (IsKey(key, 0x10, 0xA0, 0xA1) || IsKey(key, 0x11, 0xA2, 0xA3) ||
+             IsKey(key, 0x12, 0xA4, 0xA5));
+        if (!winSpace && !modifierSwitch) return;
+
+        NativeMethods.CycleStandaloneConsoleKeyboardLayout(
+            NativeMethods.GetForegroundWindow(), winSpace && shift);
+    }
+
+    private bool IsTrackedPressed(int generic, int left, int right) =>
+        _pressedKeys.Contains(generic) || _pressedKeys.Contains(left) || _pressedKeys.Contains(right);
+
+    private static bool IsKey(int key, int generic, int left, int right) =>
+        key == generic || key == left || key == right;
 
     private static bool IsSystemShortcut() =>
         IsPressed(0x11) || IsPressed(0x12) || IsPressed(0x5B) || IsPressed(0x5C);

@@ -99,22 +99,29 @@ internal sealed class LayoutIndicatorService : IDisposable
             bool hasCaret = hasGuiInfo && info.CaretWindow != 0 && TryGetCaretRect(info, out caretRect);
             bool hasAutomationField = false;
             bool hasAutomationCaret = false;
+            bool automationRejectsText = false;
             NativeMethods.Rect automationCaret = default;
             NativeMethods.Rect automationField = default;
             if (!hasCaret || settings.Anchor == LayoutIndicatorAnchor.Field)
                 hasAutomationCaret = TryGetAutomationRects(out automationCaret, out automationField,
-                    out hasAutomationField);
+                    out hasAutomationField, out automationRejectsText,
+                    settings.InputMode == LayoutIndicatorInputMode.TextInputOnly);
             if (hasAutomationCaret)
             {
                 caretRect = automationCaret;
                 hasCaret = true;
             }
             NativeMethods.Rect fallbackField = default;
-            if (!hasCaret && !hasAutomationField)
+            if (!hasCaret && !hasAutomationField &&
+                (!automationRejectsText || NativeMethods.IsStandaloneConsoleWindow(foreground)))
             {
                 nint fallbackWindow = hasGuiInfo && info.FocusWindow != 0 ? info.FocusWindow : foreground;
-                if (NativeMethods.GetWindowRect(fallbackWindow, out fallbackField) &&
-                    fallbackField.Width >= 40 && fallbackField.Height >= 14)
+                bool hasFallback = NativeMethods.GetWindowRect(fallbackWindow, out fallbackField) &&
+                    fallbackField.Width >= 40 && fallbackField.Height >= 14;
+                if (!hasFallback && fallbackWindow != foreground)
+                    hasFallback = NativeMethods.GetWindowRect(foreground, out fallbackField) &&
+                        fallbackField.Width >= 40 && fallbackField.Height >= 14;
+                if (hasFallback)
                     hasAutomationField = true;
             }
             if (!hasCaret && !hasAutomationField)
@@ -142,8 +149,14 @@ internal sealed class LayoutIndicatorService : IDisposable
             int width = (int)Math.Ceiling(size * widthFactor * scale);
             int height = (int)Math.Ceiling(size * scale);
             (int x, int y) = Position(anchorRect, width, height, scale, settings);
+            if (!hasCaret && settings.Anchor == LayoutIndicatorAnchor.Caret &&
+                NativeMethods.GetWindowRect(foreground, out var foregroundRect))
+            {
+                x = Math.Clamp(x, foregroundRect.Left, Math.Max(foregroundRect.Left, foregroundRect.Right - width));
+                y = Math.Clamp(y, foregroundRect.Top, Math.Max(foregroundRect.Top, foregroundRect.Bottom - height));
+            }
 
-            (string language, string region) = GetLayout(threadId);
+            (string language, string region) = GetLayout(foreground);
             if (foreground != NativeMethods.GetForegroundWindow()) return;
             QueueUpdate(new PendingUpdate(region, language, settings, x, y, scale));
         }
@@ -180,7 +193,9 @@ internal sealed class LayoutIndicatorService : IDisposable
         int offsetY = (int)Math.Round(Math.Clamp(settings.OffsetY, -100, 100) * scale);
         int centerX = anchor.Left + (anchor.Width - width) / 2;
         int centerY = anchor.Top + (anchor.Height - height) / 2;
-        LayoutIndicatorSide side = settings.Side ?? LayoutIndicatorSide.Right;
+        LayoutIndicatorSide defaultSide = settings.DefaultSide == LayoutIndicatorHorizontalSide.Left
+            ? LayoutIndicatorSide.Left : LayoutIndicatorSide.Right;
+        LayoutIndicatorSide side = settings.Side ?? defaultSide;
         return side switch
         {
             LayoutIndicatorSide.Top => (centerX + offsetX, anchor.Top - height - gap + offsetY),
@@ -191,14 +206,21 @@ internal sealed class LayoutIndicatorService : IDisposable
     }
 
     private static bool TryGetAutomationRects(out NativeMethods.Rect caretRect,
-        out NativeMethods.Rect fieldRect, out bool hasField)
+        out NativeMethods.Rect fieldRect, out bool hasField, out bool rejectsText, bool textOnly)
     {
         caretRect = default;
         fieldRect = default;
         hasField = false;
+        rejectsText = false;
         try
         {
             AutomationElement focused = AutomationElement.FocusedElement;
+            bool acceptsText = focused.Current.IsEnabled && focused.Current.ControlType == ControlType.Edit;
+            if (acceptsText && focused.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePattern))
+                acceptsText = !((ValuePattern)valuePattern).Current.IsReadOnly;
+            rejectsText = textOnly && !acceptsText;
+            if (rejectsText) return false;
+
             System.Windows.Rect fieldBounds = focused.Current.BoundingRectangle;
             if (!fieldBounds.IsEmpty)
             {
@@ -288,9 +310,9 @@ internal sealed class LayoutIndicatorService : IDisposable
         return true;
     }
 
-    private static (string Language, string Region) GetLayout(uint threadId)
+    private static (string Language, string Region) GetLayout(nint foreground)
     {
-        int languageId = (int)(NativeMethods.GetKeyboardLayout(threadId).ToInt64() & 0xffff);
+        int languageId = NativeMethods.GetKeyboardLanguageId(foreground);
         string language;
         try { language = CultureInfo.GetCultureInfo(languageId).TwoLetterISOLanguageName; }
         catch { language = "??"; }

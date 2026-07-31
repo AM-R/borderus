@@ -57,16 +57,17 @@ internal sealed class WindowBorderService : IDisposable
     public void Apply(BorderSettings settings)
     {
         bool wasEnabled = _settings.Enabled;
+        bool fullscreenVisibilityChanged = _settings.ShowInFullscreen != settings.ShowInFullscreen;
         _settings = settings.Copy();
         if (!_settings.Enabled)
         {
             HideAll();
             return;
         }
-        if (!wasEnabled)
+        if (!wasEnabled || fullscreenVisibilityChanged)
         {
             ReconcileWindows();
-            return;
+            if (!wasEnabled) return;
         }
         foreach (var pair in _overlays)
         {
@@ -202,6 +203,7 @@ internal sealed class WindowBorderService : IDisposable
     private bool ShouldTrack(nint hWnd)
     {
         if (!NativeMethods.IsWindowVisible(hWnd) || NativeMethods.IsIconic(hWnd) || NativeMethods.IsCloaked(hWnd)) return false;
+        if (!_settings.ShowInFullscreen && NativeMethods.IsFullscreenWindow(hWnd)) return false;
         NativeMethods.GetWindowThreadProcessId(hWnd, out uint processId);
         if (processId == _ownProcessId || processId == 0) return false;
         long extendedStyle = NativeMethods.GetWindowLongPtr(hWnd, NativeMethods.GwlExStyle).ToInt64();

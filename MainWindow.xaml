@@ -18,119 +18,126 @@
           <TextBlock Text="Borderus" FontSize="28" FontWeight="Light" />
           <TextBlock x:Name="VersionText" FontSize="12" Foreground="{DynamicResource DisabledTextBrush}" Margin="9,0,0,4" VerticalAlignment="Bottom" />
         </StackPanel>
-        <TextBlock Text="Рамки для всех окон" FontSize="14" Foreground="{DynamicResource SecondaryTextBrush}" Margin="1,3,0,0" />
       </StackPanel>
-      <CheckBox x:Name="EnabledCheckBox" Grid.Column="1" Content="Включено" VerticalAlignment="Center"
-                IsChecked="True" Checked="SettingChanged" Unchecked="SettingChanged" />
+      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+        <CheckBox x:Name="EnabledCheckBox" Content="{DynamicResource Enabled}" IsChecked="True"
+                  Checked="BorderEnabledChanged" Unchecked="BorderEnabledChanged" />
+        <CheckBox x:Name="StartupCheckBox" Content="{DynamicResource Autostart}" Margin="0,7,0,0"
+                  Checked="StartupChanged" Unchecked="StartupChanged" />
+      </StackPanel>
     </Grid>
 
     <TabControl Grid.Row="1" Margin="28,0,28,10">
-      <TabItem Header="Рамки">
+      <TabItem Header="{DynamicResource TabBorders}">
         <Grid Margin="12">
-          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-          <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="14" Margin="0,0,0,12">
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+          <CheckBox x:Name="BordersEnabledCheckBox" Content="{DynamicResource EnableBorders}" Margin="0,0,0,12"
+                    IsChecked="True" Checked="BorderEnabledChanged" Unchecked="BorderEnabledChanged" />
+          <Border x:Name="BorderPreviewOptions" Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="14" Margin="0,0,0,12">
             <StackPanel>
-              <TextBlock Text="Предпросмотр" FontSize="18" Margin="0,0,0,8" />
+              <TextBlock Text="{DynamicResource Preview}" FontSize="18" Margin="0,0,0,8" />
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,10,0">
-                  <TextBlock Text="Активное окно" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" />
+                  <TextBlock Text="{DynamicResource ActiveWindow}" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" />
                   <Grid Width="230" Height="112" Margin="0,3,0,0">
                     <Grid.RowDefinitions><RowDefinition Height="20" /><RowDefinition /><RowDefinition Height="20" /></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
-                    <CheckBox x:Name="ActiveTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Active,Top" ToolTip="Верхняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
-                    <CheckBox x:Name="ActiveLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Active,Left" ToolTip="Левая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="ActiveTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Active,Top" ToolTip="{DynamicResource TopSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="ActiveLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Active,Left" ToolTip="{DynamicResource LeftSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
                     <Grid x:Name="ActivePreviewHost" Grid.Row="1" Grid.Column="1" Background="{DynamicResource PreviewBrush}" ClipToBounds="True">
                       <Grid.RowDefinitions><RowDefinition Height="22" /><RowDefinition /></Grid.RowDefinitions>
-                      <Border Background="{DynamicResource AccentBrush}" /><TextBlock Text="Активное" Margin="8,0" VerticalAlignment="Center" FontSize="11" />
-                      <TextBlock Grid.Row="1" Text="Содержимое окна" Foreground="{DynamicResource DisabledTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                      <Border Background="{DynamicResource AccentBrush}" /><TextBlock Text="{DynamicResource Active}" Margin="8,0" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Row="1" Text="{DynamicResource WindowContent}" Foreground="{DynamicResource DisabledTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
                     </Grid>
-                    <CheckBox x:Name="ActiveRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Active,Right" ToolTip="Правая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
-                    <CheckBox x:Name="ActiveBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Active,Bottom" ToolTip="Нижняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="ActiveRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Active,Right" ToolTip="{DynamicResource RightSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="ActiveBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Active,Bottom" ToolTip="{DynamicResource BottomSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
                   </Grid>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                  <TextBlock Text="Неактивное окно" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" />
+                  <TextBlock Text="{DynamicResource InactiveWindow}" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" />
                   <Grid Width="230" Height="112" Margin="0,3,0,0">
                     <Grid.RowDefinitions><RowDefinition Height="20" /><RowDefinition /><RowDefinition Height="20" /></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
-                    <CheckBox x:Name="InactiveTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Inactive,Top" ToolTip="Верхняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
-                    <CheckBox x:Name="InactiveLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Inactive,Left" ToolTip="Левая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="InactiveTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Inactive,Top" ToolTip="{DynamicResource TopSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="InactiveLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Inactive,Left" ToolTip="{DynamicResource LeftSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
                     <Grid x:Name="InactivePreviewHost" Grid.Row="1" Grid.Column="1" Background="{DynamicResource PreviewBrush}" ClipToBounds="True">
                       <Grid.RowDefinitions><RowDefinition Height="22" /><RowDefinition /></Grid.RowDefinitions>
-                      <Border Background="{DynamicResource InactiveTitleBrush}" /><TextBlock Text="Неактивное" Margin="8,0" VerticalAlignment="Center" FontSize="11" />
-                      <TextBlock Grid.Row="1" Text="Содержимое окна" Foreground="{DynamicResource DisabledTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
+                      <Border Background="{DynamicResource InactiveTitleBrush}" /><TextBlock Text="{DynamicResource Inactive}" Margin="8,0" VerticalAlignment="Center" FontSize="11" />
+                      <TextBlock Grid.Row="1" Text="{DynamicResource WindowContent}" Foreground="{DynamicResource DisabledTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" />
                     </Grid>
-                    <CheckBox x:Name="InactiveRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Inactive,Right" ToolTip="Правая сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
-                    <CheckBox x:Name="InactiveBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Inactive,Bottom" ToolTip="Нижняя сторона" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="InactiveRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Inactive,Right" ToolTip="{DynamicResource RightSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
+                    <CheckBox x:Name="InactiveBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Inactive,Bottom" ToolTip="{DynamicResource BottomSide}" Checked="SideSettingChanged" Unchecked="SideSettingChanged" />
                   </Grid>
                 </StackPanel>
               </Grid>
             </StackPanel>
           </Border>
 
-          <Grid Grid.Row="1">
+          <Grid x:Name="BorderAppearanceOptions" Grid.Row="2">
             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
             <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="18" Margin="0,0,8,0">
               <StackPanel>
-                <TextBlock Text="Внешний вид" FontSize="18" Margin="0,0,0,12" />
-                <TextBlock Text="Настройки для" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+                <TextBlock Text="{DynamicResource Appearance}" FontSize="18" Margin="0,0,0,12" />
+                <CheckBox x:Name="ShowInFullscreenCheckBox" Content="{DynamicResource ShowBordersInFullscreen}"
+                          Margin="0,0,0,14" Checked="SettingChanged" Unchecked="SettingChanged" />
+                <TextBlock Text="{DynamicResource SettingsFor}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
                 <ComboBox x:Name="ProfileCombo" SelectionChanged="ProfileChanged" PreviewMouseWheel="ComboBoxMouseWheel" Margin="0,0,0,12">
-                  <ComboBoxItem Content="Активного окна" Tag="Active" /><ComboBoxItem Content="Неактивных окон" Tag="Inactive" />
+                  <ComboBoxItem Content="{DynamicResource ActiveWindowGenitive}" Tag="Active" /><ComboBoxItem Content="{DynamicResource InactiveWindowsGenitive}" Tag="Inactive" />
                 </ComboBox>
                 <Grid Margin="0,0,0,12">
                   <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Толщина" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" />
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource Thickness}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" />
                     <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions>
-                      <Slider x:Name="ThicknessSlider" Minimum="1" Maximum="30" Value="1" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" />
+                      <Grid><Slider x:Name="ThicknessSlider" Minimum="1" Maximum="30" Value="1" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="0" /><ColumnDefinition Width="1" /><ColumnDefinition /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid>
                       <TextBlock x:Name="ThicknessValue" Grid.Column="1" Text="1 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                   </StackPanel>
-                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Скругление" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" />
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource CornerRadius}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" />
                     <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions>
-                      <Slider x:Name="RadiusSlider" Minimum="0" Maximum="40" Value="4" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" />
+                      <Grid><Slider x:Name="RadiusSlider" Minimum="0" Maximum="40" Value="4" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="10*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="90*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid>
                       <TextBlock x:Name="RadiusValue" Grid.Column="1" Text="4 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                   </StackPanel>
                 </Grid>
-                <StackPanel Margin="0,0,0,12"><TextBlock Text="Отступ от окна" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" />
+                <StackPanel Margin="0,0,0,12"><TextBlock Text="{DynamicResource WindowPadding}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" />
                   <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="56" /></Grid.ColumnDefinitions>
-                    <Slider x:Name="PaddingSlider" Minimum="-30" Maximum="30" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" />
-                    <TextBlock x:Name="PaddingValue" Grid.Column="1" Text="0 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                    <Grid><Slider x:Name="PaddingSlider" Minimum="-30" Maximum="30" Value="-1" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="48.33*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="51.67*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid>
+                    <TextBlock x:Name="PaddingValue" Grid.Column="1" Text="-1 px" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                 </StackPanel>
                 <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Линия" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
-                    <ComboBox x:Name="LineStyleCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="Сплошная" Tag="Solid" /><ComboBoxItem Content="Пунктир" Tag="Dashed" /><ComboBoxItem Content="Точки" Tag="Dotted" /></ComboBox></StackPanel>
-                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Заливка" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
-                    <ComboBox x:Name="FillStyleCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="Один цвет" Tag="Solid" /><ComboBoxItem Content="Наружу в прозрачный" Tag="FadeEdges" /><ComboBoxItem Content="Градиент по линии" Tag="AlongLine" /></ComboBox></StackPanel>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource Line}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+                    <ComboBox x:Name="LineStyleCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource SolidLine}" Tag="Solid" /><ComboBoxItem Content="{DynamicResource DashedLine}" Tag="Dashed" /><ComboBoxItem Content="{DynamicResource DottedLine}" Tag="Dotted" /></ComboBox></StackPanel>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource Fill}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+                    <ComboBox x:Name="FillStyleCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource SolidColor}" Tag="Solid" /><ComboBoxItem Content="{DynamicResource FadeEdges}" Tag="FadeEdges" /><ComboBoxItem Content="{DynamicResource AlongLine}" Tag="AlongLine" /></ComboBox></StackPanel>
                 </Grid>
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Цвет линии" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" /><Button x:Name="PrimaryColorButton" Click="ChoosePrimaryColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="PrimarySwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="PrimaryColorText" /></StackPanel></Button></StackPanel>
-                  <StackPanel x:Name="SecondaryColorPanel" Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Второй цвет" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" /><Button x:Name="SecondaryColorButton" Click="ChooseSecondaryColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="SecondarySwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="SecondaryColorText" /></StackPanel></Button></StackPanel>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource LineColor}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" /><Button x:Name="PrimaryColorButton" Click="ChoosePrimaryColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="PrimarySwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="PrimaryColorText" /></StackPanel></Button></StackPanel>
+                  <StackPanel x:Name="SecondaryColorPanel" Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource SecondColor}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" /><Button x:Name="SecondaryColorButton" Click="ChooseSecondaryColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="SecondarySwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="SecondaryColorText" /></StackPanel></Button></StackPanel>
                 </Grid>
               </StackPanel>
             </Border>
             <StackPanel Grid.Column="1" Margin="8,0,0,0">
             <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="18" Margin="0,0,0,12">
               <StackPanel>
-                <TextBlock Text="Движение" FontSize="18" Margin="0,0,0,14" />
-                <CheckBox x:Name="AnimateCheckBox" Content="Анимировать пунктир" Checked="SettingChanged" Unchecked="SettingChanged" />
-                <CheckBox x:Name="AnimateGradientCheckBox" Content="Анимировать градиент" Margin="0,8,0,0" Checked="SettingChanged" Unchecked="SettingChanged" />
+                <TextBlock Text="{DynamicResource Motion}" FontSize="18" Margin="0,0,0,14" />
+                <CheckBox x:Name="AnimateCheckBox" Content="{DynamicResource AnimateDash}" Checked="SettingChanged" Unchecked="SettingChanged" />
+                <CheckBox x:Name="AnimateGradientCheckBox" Content="{DynamicResource AnimateGradient}" Margin="0,8,0,0" Checked="SettingChanged" Unchecked="SettingChanged" />
                 <Grid x:Name="AnimationOptions" Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Направление" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" /><ComboBox x:Name="DirectionCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="По часовой" Tag="Clockwise" /><ComboBoxItem Content="Против часовой" Tag="CounterClockwise" /></ComboBox></StackPanel>
-                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Скорость" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Slider x:Name="SpeedSlider" Minimum="0.25" Maximum="40" Value="1" TickFrequency="0.25" ValueChanged="SettingChanged" Margin="0,8,0,0" /></StackPanel>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource Direction}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" /><ComboBox x:Name="DirectionCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource Clockwise}" Tag="Clockwise" /><ComboBoxItem Content="{DynamicResource CounterClockwise}" Tag="CounterClockwise" /></ComboBox></StackPanel>
+                  <StackPanel x:Name="SpeedOptions" Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource Speed}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,8,0,0"><Slider x:Name="SpeedSlider" Minimum="0.25" Maximum="40" Value="1" TickFrequency="0.25" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1.89*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="98.11*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid></StackPanel>
                 </Grid>
               </StackPanel>
             </Border>
             <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="18">
               <StackPanel>
-                <TextBlock Text="Окна администратора" FontSize="18" Margin="0,0,0,12" />
-                <TextBlock Text="Отдельные цвета рамок" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8" />
+                <TextBlock Text="{DynamicResource AdminWindows}" FontSize="18" Margin="0,0,0,12" />
+                <TextBlock Text="{DynamicResource SeparateBorderColors}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8" />
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                   <StackPanel Margin="0,0,8,0">
-                    <CheckBox x:Name="ActiveElevatedColorCheckBox" Content="Активное" Tag="Active" Checked="ElevatedColorSettingChanged" Unchecked="ElevatedColorSettingChanged" Margin="0,0,0,5" />
+                    <CheckBox x:Name="ActiveElevatedColorCheckBox" Content="{DynamicResource Active}" Tag="Active" Checked="ElevatedColorSettingChanged" Unchecked="ElevatedColorSettingChanged" Margin="0,0,0,5" />
                     <Button x:Name="ActiveElevatedColorButton" Tag="Active" Click="ChooseElevatedColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="ActiveElevatedSwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="ActiveElevatedColorText" /></StackPanel></Button>
                   </StackPanel>
                   <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                    <CheckBox x:Name="InactiveElevatedColorCheckBox" Content="Неактивное" Tag="Inactive" Checked="ElevatedColorSettingChanged" Unchecked="ElevatedColorSettingChanged" Margin="0,0,0,5" />
+                    <CheckBox x:Name="InactiveElevatedColorCheckBox" Content="{DynamicResource Inactive}" Tag="Inactive" Checked="ElevatedColorSettingChanged" Unchecked="ElevatedColorSettingChanged" Margin="0,0,0,5" />
                     <Button x:Name="InactiveElevatedColorButton" Tag="Inactive" Click="ChooseElevatedColor" HorizontalContentAlignment="Left"><StackPanel Orientation="Horizontal"><Border x:Name="InactiveElevatedSwatch" Width="18" Height="18" CornerRadius="2" Margin="0,0,9,0" /><TextBlock x:Name="InactiveElevatedColorText" /></StackPanel></Button>
                   </StackPanel>
                 </Grid>
@@ -141,90 +148,117 @@
         </Grid>
       </TabItem>
 
-      <TabItem Header="Флаг раскладки">
-        <Grid Margin="12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-          <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="0,0,8,0">
+      <TabItem Header="{DynamicResource TabLayout}">
+        <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+          <CheckBox x:Name="LayoutIndicatorCheckBox" Grid.ColumnSpan="2" Content="{DynamicResource EnableFlag}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
+          <Border Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="0,0,8,0">
             <StackPanel>
-              <TextBlock Text="Флаг раскладки" FontSize="20" Margin="0,0,0,16" />
-              <CheckBox x:Name="LayoutIndicatorCheckBox" Content="Показывать индикатор" Checked="SettingChanged" Unchecked="SettingChanged" />
-              <StackPanel x:Name="LayoutIndicatorOptions" Margin="0,16,0,0">
-                <TextBlock Text="Содержимое" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
-                <ComboBox x:Name="LayoutContentCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="Только флаг" Tag="FlagOnly" /><ComboBoxItem Content="Флаг и RU / EN" Tag="FlagAndCode" /></ComboBox>
-                <CheckBox x:Name="LayoutContainerCheckBox" Content="Показывать контейнер" Margin="0,12,0,0" Checked="SettingChanged" Unchecked="SettingChanged" />
-                <TextBlock Text="Привязка" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,14,0,4" />
-                <ComboBox x:Name="LayoutAnchorCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="К полю ввода" Tag="Field" /><ComboBoxItem Content="Всегда к каретке" Tag="Caret" /></ComboBox>
+              <TextBlock Text="{DynamicResource TabLayout}" FontSize="20" Margin="0,0,0,16" />
+              <StackPanel x:Name="LayoutIndicatorOptions">
+                <TextBlock Text="{DynamicResource IndicatorScope}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+                <ComboBox x:Name="LayoutInputModeCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel" Margin="0,0,0,12"><ComboBoxItem Content="{DynamicResource Everywhere}" Tag="Everywhere" /><ComboBoxItem Content="{DynamicResource TextInputOnly}" Tag="TextInputOnly" /></ComboBox>
+                <TextBlock Text="{DynamicResource Content}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+                <ComboBox x:Name="LayoutContentCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource FlagOnly}" Tag="FlagOnly" /><ComboBoxItem Content="{DynamicResource FlagAndCode}" Tag="FlagAndCode" /></ComboBox>
+                <CheckBox x:Name="LayoutContainerCheckBox" Content="{DynamicResource ShowContainer}" Margin="0,12,0,0" Checked="SettingChanged" Unchecked="SettingChanged" />
+                <TextBlock Text="{DynamicResource Anchor}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,14,0,4" />
+                <ComboBox x:Name="LayoutAnchorCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource ToInputField}" Tag="Field" /><ComboBoxItem Content="{DynamicResource AlwaysToCaret}" Tag="Caret" /></ComboBox>
+                <TextBlock Text="{DynamicResource DefaultFlagSide}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,14,0,4" />
+                <ComboBox x:Name="LayoutDefaultSideCombo" SelectionChanged="DefaultLayoutSideChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource Right}" Tag="Right" /><ComboBoxItem Content="{DynamicResource Left}" Tag="Left" /></ComboBox>
                 <Grid Margin="0,16,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                  <StackPanel Margin="0,0,8,0"><TextBlock Text="Размер" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions><Slider x:Name="LayoutSizeSlider" Minimum="10" Maximum="80" Value="32" TickFrequency="2" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutSizeValue" Grid.Column="1" Text="32" HorizontalAlignment="Right" /></Grid></StackPanel>
-                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Прозрачность" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions><Slider x:Name="LayoutOpacitySlider" Minimum="0.2" Maximum="1" Value="0.9" TickFrequency="0.05" IsSnapToTickEnabled="True" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutOpacityValue" Grid.Column="1" Text="90%" HorizontalAlignment="Right" /></Grid></StackPanel>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource Size}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutSizeSlider" Minimum="10" Maximum="80" Value="20" TickFrequency="2" IsSnapToTickEnabled="True" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="14.29*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="85.71*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutSizeValue" Grid.Column="1" Text="20" HorizontalAlignment="Right" /></Grid></StackPanel>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource Opacity}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutOpacitySlider" Minimum="0.2" Maximum="1" Value="0.75" TickFrequency="0.05" IsSnapToTickEnabled="True" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="68.75*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="31.25*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutOpacityValue" Grid.Column="1" Text="75%" HorizontalAlignment="Right" /></Grid></StackPanel>
                 </Grid>
               </StackPanel>
             </StackPanel>
           </Border>
-          <Border x:Name="LayoutPositionOptions" Grid.Column="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="8,0,0,0">
+          <Border x:Name="LayoutPositionOptions" Grid.Row="1" Grid.Column="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="8,0,0,0">
             <StackPanel>
-              <TextBlock Text="Позиционирование" FontSize="20" Margin="0,0,0,10" />
-              <TextBlock Text="Выберите сторону относительно поля или каретки" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" />
+              <TextBlock Text="{DynamicResource Positioning}" FontSize="20" Margin="0,0,0,10" />
+              <TextBlock Text="{DynamicResource PositioningDescription}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" />
               <Grid x:Name="LayoutSideSelector" Width="280" Height="170" Margin="0,18,0,12">
                 <Grid.RowDefinitions><RowDefinition Height="34" /><RowDefinition /><RowDefinition Height="34" /></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions>
-                <CheckBox x:Name="LayoutTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Top" ToolTip="Сверху" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
-                <CheckBox x:Name="LayoutLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Left" ToolTip="Слева" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
-                <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource PreviewBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"><StackPanel VerticalAlignment="Center"><TextBlock Text="Поле ввода" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" /><Border x:Name="LayoutPreviewIndicator" Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource DisabledTextBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5" HorizontalAlignment="Center" Margin="0,8,0,0" Cursor="SizeAll" MouseLeftButtonDown="LayoutPreviewMouseDown" MouseMove="LayoutPreviewMouseMove" MouseLeftButtonUp="LayoutPreviewMouseUp"><Border.RenderTransform><TranslateTransform x:Name="LayoutPreviewTransform" /></Border.RenderTransform><TextBlock Text="🇷🇺 RU" /></Border></StackPanel></Border>
-                <CheckBox x:Name="LayoutRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Right" ToolTip="Справа" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
-                <CheckBox x:Name="LayoutBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Bottom" ToolTip="Снизу" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+                <CheckBox x:Name="LayoutTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Top" ToolTip="{DynamicResource Above}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+                <CheckBox x:Name="LayoutLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Left" ToolTip="{DynamicResource Left}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+                <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource PreviewBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"><StackPanel VerticalAlignment="Center"><TextBlock Text="{DynamicResource InputField}" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" /><Border x:Name="LayoutPreviewIndicator" Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource DisabledTextBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5" HorizontalAlignment="Center" Margin="0,8,0,0" Cursor="SizeAll" MouseLeftButtonDown="LayoutPreviewMouseDown" MouseMove="LayoutPreviewMouseMove" MouseLeftButtonUp="LayoutPreviewMouseUp"><Border.RenderTransform><TranslateTransform x:Name="LayoutPreviewTransform" /></Border.RenderTransform><TextBlock Text="🇷🇺 RU" /></Border></StackPanel></Border>
+                <CheckBox x:Name="LayoutRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Right" ToolTip="{DynamicResource Right}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
+                <CheckBox x:Name="LayoutBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Bottom" ToolTip="{DynamicResource Below}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
               </Grid>
               <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,8,0"><TextBlock Text="Смещение X" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Slider x:Name="LayoutOffsetXSlider" Minimum="-100" Maximum="100" Value="8" TickFrequency="1" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutOffsetXValue" Grid.Column="1" Text="8" HorizontalAlignment="Right" /></Grid></StackPanel>
-                <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="Смещение Y" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Slider x:Name="LayoutOffsetYSlider" Minimum="-100" Maximum="100" Value="0" TickFrequency="1" ValueChanged="SettingChanged" /><TextBlock x:Name="LayoutOffsetYValue" Grid.Column="1" Text="0" HorizontalAlignment="Right" /></Grid></StackPanel>
+                <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource OffsetX}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutOffsetXSlider" Minimum="-100" Maximum="100" Value="8" TickFrequency="1" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="54*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="46*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutOffsetXValue" Grid.Column="1" Text="8" HorizontalAlignment="Right" /></Grid></StackPanel>
+                <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource OffsetY}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutOffsetYSlider" Minimum="-100" Maximum="100" Value="0" TickFrequency="1" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="50*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="50*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutOffsetYValue" Grid.Column="1" Text="0" HorizontalAlignment="Right" /></Grid></StackPanel>
               </Grid>
             </StackPanel>
           </Border>
         </Grid>
       </TabItem>
-      <TabItem Header="Клавиши">
-        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
+      <TabItem Header="{DynamicResource TabKeys}">
+        <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+          <CheckBox x:Name="RepeatEnabledCheckBox" Content="{DynamicResource EnableRepeat}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
+        <Border Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
           <StackPanel>
-            <TextBlock Text="Клавиатура" FontSize="20" Margin="0,0,0,12" />
-            <TextBlock Text="Задержка до начала повтора" Foreground="{DynamicResource SecondaryTextBrush}" />
-            <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="Сбросить: 250 мс" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatDelay" /><Grid Grid.Column="1"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" ValueChanged="SettingChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
-            <TextBlock Text="Скорость после начала повтора" Foreground="{DynamicResource SecondaryTextBrush}" />
-            <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="Сбросить: 25 мс" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatRate" /><Grid Grid.Column="1"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" ValueChanged="SettingChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+            <TextBlock Text="{DynamicResource Keyboard}" FontSize="20" Margin="0,0,0,16" />
+            <StackPanel x:Name="RepeatOptions">
+            <TextBlock Text="{DynamicResource RepeatDelay}" Foreground="{DynamicResource SecondaryTextBrush}" />
+            <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetDelay}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatDelay" /><Grid Grid.Column="1"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" Value="200" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+            <TextBlock Text="{DynamicResource RepeatRate}" Foreground="{DynamicResource SecondaryTextBrush}" />
+            <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetRate}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatRate" /><Grid Grid.Column="1"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" Value="20" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+            </StackPanel>
           </StackPanel>
-        </Border>
+        </Border></Grid>
       </TabItem>
-      <TabItem Header="Звуки">
-        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
+      <TabItem Header="{DynamicResource TabSounds}">
+        <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+          <CheckBox x:Name="SoundEnabledCheckBox" Content="{DynamicResource EnableSounds}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
+        <Border Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
           <StackPanel>
-            <TextBlock Text="Звуки клавиш" FontSize="20" Margin="0,0,0,12" />
-            <TextBlock Text="Звук воспроизводится один раз при нажатии символа. Повторное нажатие перезапускает звук без наложения артефактов." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
-            <TextBlock Text="Русская раскладка" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+            <TextBlock Text="{DynamicResource KeySounds}" FontSize="20" Margin="0,0,0,16" />
+            <StackPanel x:Name="SoundOptions">
+            <TextBlock Text="{DynamicResource SoundDescription}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
+            <TextBlock Text="{DynamicResource RussianLayout}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
             <ComboBox x:Name="RussianSoundCombo" SelectionChanged="KeyboardSettingChanged" Margin="0,0,0,12">
-              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" /><ComboBoxItem Content="Свой WAV-файл" Tag="Custom" />
+              <ComboBoxItem Content="{DynamicResource NoSound}" Tag="None" /><ComboBoxItem Content="{DynamicResource SystemNotification}" Tag="SystemAsterisk" /><ComboBoxItem Content="{DynamicResource SystemBeep}" Tag="SystemBeep" /><ComboBoxItem Content="{DynamicResource SystemWarning}" Tag="SystemExclamation" /><ComboBoxItem Content="{DynamicResource SystemError}" Tag="SystemHand" /><ComboBoxItem Content="{DynamicResource CustomWav}" Tag="Custom" />
             </ComboBox>
-            <Button Content="Выбрать WAV для русской раскладки…" Click="ChooseRussianSound" Margin="0,0,0,12" />
-            <TextBlock Text="Английская раскладка" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+            <Button Content="{DynamicResource ChooseRussianWav}" Click="ChooseRussianSound" Margin="0,0,0,12" />
+            <TextBlock Text="{DynamicResource EnglishLayout}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
             <ComboBox x:Name="EnglishSoundCombo" SelectionChanged="KeyboardSettingChanged">
-              <ComboBoxItem Content="Без звука" Tag="None" /><ComboBoxItem Content="Системный: уведомление" Tag="SystemAsterisk" /><ComboBoxItem Content="Системный: сигнал" Tag="SystemBeep" /><ComboBoxItem Content="Системный: предупреждение" Tag="SystemExclamation" /><ComboBoxItem Content="Системный: ошибка" Tag="SystemHand" /><ComboBoxItem Content="Свой WAV-файл" Tag="Custom" />
+              <ComboBoxItem Content="{DynamicResource NoSound}" Tag="None" /><ComboBoxItem Content="{DynamicResource SystemNotification}" Tag="SystemAsterisk" /><ComboBoxItem Content="{DynamicResource SystemBeep}" Tag="SystemBeep" /><ComboBoxItem Content="{DynamicResource SystemWarning}" Tag="SystemExclamation" /><ComboBoxItem Content="{DynamicResource SystemError}" Tag="SystemHand" /><ComboBoxItem Content="{DynamicResource CustomWav}" Tag="Custom" />
             </ComboBox>
-            <Button Content="Выбрать WAV для английской раскладки…" Click="ChooseEnglishSound" Margin="0,12,0,0" />
+            <Button Content="{DynamicResource ChooseEnglishWav}" Click="ChooseEnglishSound" Margin="0,12,0,0" />
+            </StackPanel>
+          </StackPanel>
+        </Border></Grid>
+      </TabItem>
+      <TabItem Header="{DynamicResource Language}">
+        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="12">
+          <StackPanel>
+            <TextBlock Text="{DynamicResource Language}" FontSize="20" Margin="0,0,0,16" />
+            <TextBlock Text="{DynamicResource Language}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
+            <ComboBox x:Name="LanguageCombo" SelectionChanged="LanguageChanged" Width="260" HorizontalAlignment="Left">
+              <ComboBoxItem Content="{DynamicResource Russian}" Tag="ru" />
+              <ComboBoxItem Content="{DynamicResource English}" Tag="en" />
+            </ComboBox>
+            <TextBlock Text="{DynamicResource LanguageDescription}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,7,0,0" />
           </StackPanel>
         </Border>
       </TabItem>
-      <TabItem Header="Подсветка">
-        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
+      <TabItem Header="{DynamicResource TabAbout}">
+        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="12">
           <StackPanel>
-            <TextBlock Text="Подсветка клавиатуры" FontSize="20" Margin="0,0,0,10" />
-            <TextBlock Text="Приложение не отправляет синтетические нажатия клавиш. Диагностика проверяет только доступные Windows-интерфейсы ACPI, WMI и HID и не посылает команды прошивке." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
-            <Button Content="Проверить интерфейсы ноутбука" Click="DiagnoseBacklight" />
-            <TextBlock x:Name="BacklightStatusText" Text="Диагностика ещё не запускалась." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,14,0,0" />
+            <TextBlock Text="{DynamicResource AboutTitle}" FontSize="24" Margin="0,0,0,10" />
+            <TextBlock Text="{DynamicResource AboutDescription}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,20" />
+            <TextBlock x:Name="AboutVersionText" Margin="0,0,0,8" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8"><TextBlock Text="{DynamicResource AuthorLabel}" /><TextBlock Text="{DynamicResource AuthorName}" Margin="4,0,0,0" /></StackPanel>
+            <TextBlock Text="{DynamicResource RepositoryLabel}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,5" />
+            <Button Content="{DynamicResource OpenRepository}" Click="OpenRepository" HorizontalAlignment="Left" />
           </StackPanel>
         </Border>
       </TabItem>
     </TabControl>
 
     <Grid Grid.Row="2" Margin="28,8,28,20"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-      <TextBlock Text="Закрытие сворачивает приложение в трей" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" VerticalAlignment="Center" />
-      <Button Grid.Column="1" Content="Скрыть в трей" Click="HideToTray" Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" BorderBrush="{DynamicResource AccentBrush}" />
+      <TextBlock Text="{DynamicResource CloseToTray}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Content="{DynamicResource HideToTray}" Click="HideToTray" Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}" BorderBrush="{DynamicResource AccentBrush}" />
     </Grid>
   </Grid>
 </Window>

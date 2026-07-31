@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -22,35 +24,51 @@ public partial class MainWindow : Window
     private readonly KeyboardService _keyboardService;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly DispatcherTimer _saveTimer;
+    private readonly DispatcherTimer _sliderApplyTimer;
     private readonly BorderRenderer _activePreviewRenderer = new();
     private readonly BorderRenderer _inactivePreviewRenderer = new();
+    private Forms.ToolStripMenuItem? _openMenuItem;
     private Forms.ToolStripMenuItem? _enabledMenuItem;
+    private Forms.ToolStripMenuItem? _soundMenuItem;
+    private Forms.ToolStripMenuItem? _repeatMenuItem;
+    private Forms.ToolStripMenuItem? _layoutMenuItem;
+    private Forms.ToolStripMenuItem? _startupMenuItem;
+    private Forms.ToolStripMenuItem? _exitMenuItem;
     private Forms.ContextMenuStrip? _trayMenu;
     private WindowsThemePalette _theme;
     private bool _loading = true;
     private bool _exiting;
     private bool _editingActive = true;
+    private bool _sliderDragging;
+    private bool _sliderChangesPending;
     private System.Windows.Point _previewDragStart;
     private double _previewOffsetX;
     private double _previewOffsetY;
 
     private BorderProfile CurrentProfile => _editingActive ? _settings.Active : _settings.Inactive;
 
-    public MainWindow()
+    public MainWindow(BorderSettings settings)
     {
+        _settings = settings;
         InitializeComponent();
         ApplySystemTheme();
         AddPreviewRenderer(ActivePreviewHost, _activePreviewRenderer);
         AddPreviewRenderer(InactivePreviewHost, _inactivePreviewRenderer);
-        Version? version = typeof(MainWindow).Assembly.GetName().Version;
-        VersionText.Text = version is null ? string.Empty : $"v{version.Major}.{version.Minor}.{version.Build}";
-        _settings = SettingsStore.Load();
+        VersionText.Text = GetVersionText();
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _saveTimer.Tick += (_, _) =>
         {
             _saveTimer.Stop();
             SettingsStore.Save(_settings);
         };
+        _sliderApplyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(140) };
+        _sliderApplyTimer.Tick += (_, _) =>
+        {
+            _sliderApplyTimer.Stop();
+            if (!_loading && !_sliderDragging && _sliderChangesPending) ApplySettings();
+        };
+        AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler(SliderDragStarted));
+        AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler(SliderDragCompleted));
         SourceInitialized += (_, _) => ApplyTitleBarTheme();
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         LoadControls();
@@ -58,6 +76,7 @@ public partial class MainWindow : Window
         _layoutIndicatorService = new LayoutIndicatorService(Dispatcher, _settings);
         _keyboardService = new KeyboardService(_settings);
         _trayIcon = CreateTrayIcon();
+        UpdateLocalizedText();
         _loading = false;
         ApplySettings();
     }
@@ -67,24 +86,71 @@ public partial class MainWindow : Window
         var menu = new Forms.ContextMenuStrip();
         _trayMenu = menu;
         ApplyTrayMenuTheme();
-        menu.Items.Add("Открыть", null, (_, _) => ShowFromTray());
-        _enabledMenuItem = new Forms.ToolStripMenuItem("Рамки включены", null, (_, _) => ToggleEnabled())
+        _openMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("TrayOpen"), null, (_, _) => ShowFromTray());
+        menu.Items.Add(_openMenuItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        _enabledMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableBorders"), null, (_, _) => ToggleEnabled())
         {
             Checked = _settings.Enabled,
             CheckOnClick = false
         };
         menu.Items.Add(_enabledMenuItem);
+        _soundMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableSounds"), null, (_, _) => ToggleSound())
+        {
+            Checked = _settings.Keyboard.SoundEnabled,
+            CheckOnClick = false
+        };
+        menu.Items.Add(_soundMenuItem);
+        _repeatMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableRepeat"), null, (_, _) => ToggleRepeat())
+        {
+            Checked = _settings.Keyboard.RepeatEnabled,
+            CheckOnClick = false
+        };
+        menu.Items.Add(_repeatMenuItem);
+        _layoutMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableFlag"), null, (_, _) => ToggleLayoutIndicator())
+        {
+            Checked = _settings.LayoutIndicator.Enabled,
+            CheckOnClick = false
+        };
+        menu.Items.Add(_layoutMenuItem);
+        _startupMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableStartup"), null, (_, _) => ToggleStartup())
+        {
+            Checked = _settings.StartWithWindows,
+            CheckOnClick = false
+        };
+        menu.Items.Add(_startupMenuItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Выход", null, (_, _) => ExitApplication());
+        _exitMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("TrayExit"), null, (_, _) => ExitApplication());
+        menu.Items.Add(_exitMenuItem);
         var icon = new Forms.NotifyIcon
         {
             Icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!) ?? SystemIcons.Application,
-            Text = "Borderus — рамки окон",
+            Text = LocalizationService.Text("TrayText"),
             Visible = true,
             ContextMenuStrip = menu
         };
         icon.DoubleClick += (_, _) => ShowFromTray();
         return icon;
+    }
+
+    private static string GetVersionText()
+    {
+        Version? version = typeof(MainWindow).Assembly.GetName().Version;
+        return version is null ? string.Empty : $"v{version.Major}.{version.Minor}.{version.Build}";
+    }
+
+    private void UpdateLocalizedText()
+    {
+        AboutVersionText.Text = $"{LocalizationService.Text("VersionLabel")}: {GetVersionText()}";
+        if (_trayMenu is null) return;
+        if (_openMenuItem is not null) _openMenuItem.Text = LocalizationService.Text("TrayOpen");
+        if (_enabledMenuItem is not null) _enabledMenuItem.Text = LocalizationService.Text("EnableBorders");
+        if (_soundMenuItem is not null) _soundMenuItem.Text = LocalizationService.Text("EnableSounds");
+        if (_repeatMenuItem is not null) _repeatMenuItem.Text = LocalizationService.Text("EnableRepeat");
+        if (_layoutMenuItem is not null) _layoutMenuItem.Text = LocalizationService.Text("EnableFlag");
+        if (_startupMenuItem is not null) _startupMenuItem.Text = LocalizationService.Text("EnableStartup");
+        if (_exitMenuItem is not null) _exitMenuItem.Text = LocalizationService.Text("TrayExit");
+        _trayIcon.Text = LocalizationService.Text("TrayText");
     }
 
     private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
@@ -146,16 +212,24 @@ public partial class MainWindow : Window
     private void LoadControls()
     {
         EnabledCheckBox.IsChecked = _settings.Enabled;
+        BordersEnabledCheckBox.IsChecked = _settings.Enabled;
+        ShowInFullscreenCheckBox.IsChecked = _settings.ShowInFullscreen;
+        SelectByTag(LanguageCombo, _settings.Language);
+        StartupCheckBox.IsChecked = _settings.StartWithWindows;
         LoadSideControls();
         LoadElevatedColorControls();
         LayoutIndicatorCheckBox.IsChecked = _settings.LayoutIndicator.Enabled;
+        RepeatEnabledCheckBox.IsChecked = _settings.Keyboard.RepeatEnabled;
+        SoundEnabledCheckBox.IsChecked = _settings.Keyboard.SoundEnabled;
         LayoutContainerCheckBox.IsChecked = _settings.LayoutIndicator.ShowContainer;
+        SelectByTag(LayoutInputModeCombo, _settings.LayoutIndicator.InputMode.ToString());
         LayoutSizeSlider.Value = Math.Clamp(_settings.LayoutIndicator.Size, 10, 80);
         LayoutOpacitySlider.Value = Math.Clamp(_settings.LayoutIndicator.Opacity, 0.2, 1);
         LayoutOffsetXSlider.Value = Math.Clamp(_settings.LayoutIndicator.OffsetX, -100, 100);
         LayoutOffsetYSlider.Value = Math.Clamp(_settings.LayoutIndicator.OffsetY, -100, 100);
         SelectByTag(LayoutContentCombo, _settings.LayoutIndicator.Content.ToString());
         SelectByTag(LayoutAnchorCombo, _settings.LayoutIndicator.Anchor.ToString());
+        SelectByTag(LayoutDefaultSideCombo, _settings.LayoutIndicator.DefaultSide.ToString());
         LoadLayoutSideControls();
         RepeatDelaySlider.Value = Math.Clamp(_settings.Keyboard.RepeatDelayMs, 10, 1000);
         RepeatRateSlider.Value = Math.Clamp(_settings.Keyboard.RepeatIntervalMs, 5, 250);
@@ -213,6 +287,7 @@ public partial class MainWindow : Window
         SelectByTag(DirectionCombo, profile.Direction.ToString());
         UpdateColorButtons();
         UpdateConditionalControls();
+        UpdateSliderValueLabels();
     }
 
     private void ProfileChanged(object sender, SelectionChangedEventArgs e)
@@ -234,14 +309,94 @@ public partial class MainWindow : Window
         if (!_loading && IsLoaded) ApplySettings();
     }
 
+    private void BorderEnabledChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading || sender is not System.Windows.Controls.CheckBox checkBox) return;
+        bool enabled = checkBox.IsChecked == true;
+        _loading = true;
+        EnabledCheckBox.IsChecked = enabled;
+        BordersEnabledCheckBox.IsChecked = enabled;
+        _loading = false;
+        ApplySettings();
+    }
+
+    private void SliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_loading || !IsLoaded || sender is not Slider slider) return;
+
+        if (slider == ThicknessSlider) CurrentProfile.Thickness = slider.Value;
+        else if (slider == PaddingSlider) CurrentProfile.Padding = slider.Value;
+        else if (slider == RadiusSlider) CurrentProfile.CornerRadius = slider.Value;
+        else if (slider == SpeedSlider) CurrentProfile.AnimationSpeed = slider.Value;
+        else if (slider == LayoutSizeSlider) _settings.LayoutIndicator.Size = slider.Value;
+        else if (slider == LayoutOpacitySlider) _settings.LayoutIndicator.Opacity = slider.Value;
+        else if (slider == LayoutOffsetXSlider) _settings.LayoutIndicator.OffsetX = slider.Value;
+        else if (slider == LayoutOffsetYSlider) _settings.LayoutIndicator.OffsetY = slider.Value;
+        else if (slider == RepeatDelaySlider) _settings.Keyboard.RepeatDelayMs = (int)slider.Value;
+        else if (slider == RepeatRateSlider) _settings.Keyboard.RepeatIntervalMs = (int)slider.Value;
+
+        UpdateSliderValueLabels();
+        LayoutPreviewTransform.X = _settings.LayoutIndicator.OffsetX * 0.35;
+        LayoutPreviewTransform.Y = _settings.LayoutIndicator.OffsetY * 0.35;
+        _sliderChangesPending = true;
+        _sliderApplyTimer.Stop();
+        if (!_sliderDragging) _sliderApplyTimer.Start();
+    }
+
+    private void SliderDragStarted(object sender, DragStartedEventArgs e)
+    {
+        _sliderDragging = true;
+        _sliderApplyTimer.Stop();
+    }
+
+    private void SliderDragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        _sliderDragging = false;
+        if (_loading || !_sliderChangesPending) return;
+        _sliderApplyTimer.Stop();
+        ApplySettings();
+    }
+
     private void KeyboardSettingChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || !IsLoaded) return;
         ApplySettings();
+        if (!_settings.Keyboard.SoundEnabled) return;
         if (sender == RussianSoundCombo)
             _keyboardService.Preview(_settings.Keyboard.RussianSound, _settings.Keyboard.RussianSoundFile);
         else if (sender == EnglishSoundCombo)
             _keyboardService.Preview(_settings.Keyboard.EnglishSound, _settings.Keyboard.EnglishSoundFile);
+    }
+
+    private void LanguageChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || LanguageCombo.SelectedItem is not ComboBoxItem { Tag: string language }) return;
+        _settings.Language = LocalizationService.Normalize(language);
+        LocalizationService.Apply(_settings.Language);
+        UpdateLocalizedText();
+        ApplySettings();
+    }
+
+    private void StartupChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        bool enabled = StartupCheckBox.IsChecked == true;
+        if (StartupService.SetEnabled(enabled))
+        {
+            _settings.StartWithWindows = enabled;
+            if (_startupMenuItem is not null) _startupMenuItem.Checked = enabled;
+            UpdateConditionalControls();
+            SettingsStore.Save(_settings);
+            return;
+        }
+
+        _loading = true;
+        StartupCheckBox.IsChecked = !enabled;
+        _loading = false;
+        if (_startupMenuItem is not null) _startupMenuItem.Checked = _settings.StartWithWindows;
+        UpdateConditionalControls();
+        System.Windows.MessageBox.Show(this, LocalizationService.Text("StartupError"),
+            LocalizationService.Text("StartupErrorTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     private void ResetRepeatDelay(object sender, RoutedEventArgs e) => RepeatDelaySlider.Value = 250;
@@ -252,21 +407,12 @@ public partial class MainWindow : Window
 
     private void ChooseEnglishSound(object sender, RoutedEventArgs e) => ChooseKeyboardSound(false);
 
-    private async void DiagnoseBacklight(object sender, RoutedEventArgs e)
-    {
-        if (sender is System.Windows.Controls.Button button) button.IsEnabled = false;
-        BacklightStatusText.Text = "Проверка ACPI, WMI и HID-интерфейсов…";
-        try { BacklightStatusText.Text = await KeyboardBacklightService.DiagnoseAsync(); }
-        catch (Exception ex) { BacklightStatusText.Text = $"Ошибка диагностики: {ex.Message}"; }
-        finally { if (sender is System.Windows.Controls.Button finishedButton) finishedButton.IsEnabled = true; }
-    }
-
     private void ChooseKeyboardSound(bool russian)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = russian ? "Звук русской раскладки" : "Звук английской раскладки",
-            Filter = "Звуки WAV (*.wav)|*.wav",
+            Title = LocalizationService.Text(russian ? "RussianSoundDialog" : "EnglishSoundDialog"),
+            Filter = LocalizationService.Text("WavFilter"),
             CheckFileExists = true
         };
         if (dialog.ShowDialog(this) != true) return;
@@ -286,7 +432,10 @@ public partial class MainWindow : Window
 
     private void ApplySettings()
     {
+        _sliderApplyTimer.Stop();
+        _sliderChangesPending = false;
         _settings.Enabled = EnabledCheckBox.IsChecked == true;
+        _settings.ShowInFullscreen = ShowInFullscreenCheckBox.IsChecked == true;
         BorderProfile profile = CurrentProfile;
         profile.Thickness = ThicknessSlider.Value;
         profile.Padding = PaddingSlider.Value;
@@ -301,24 +450,24 @@ public partial class MainWindow : Window
         _settings.LayoutIndicator.Size = LayoutSizeSlider.Value;
         _settings.LayoutIndicator.Opacity = LayoutOpacitySlider.Value;
         _settings.LayoutIndicator.ShowContainer = LayoutContainerCheckBox.IsChecked == true;
-        _settings.LayoutIndicator.Content = ReadTag(LayoutContentCombo, LayoutIndicatorContent.FlagAndCode);
-        _settings.LayoutIndicator.Anchor = ReadTag(LayoutAnchorCombo, LayoutIndicatorAnchor.Field);
+        _settings.LayoutIndicator.Content = ReadTag(LayoutContentCombo, LayoutIndicatorContent.FlagOnly);
+        _settings.LayoutIndicator.InputMode = ReadTag(LayoutInputModeCombo, LayoutIndicatorInputMode.TextInputOnly);
+        _settings.LayoutIndicator.Anchor = ReadTag(LayoutAnchorCombo, LayoutIndicatorAnchor.Caret);
+        _settings.LayoutIndicator.DefaultSide = ReadTag(LayoutDefaultSideCombo, LayoutIndicatorHorizontalSide.Right);
         _settings.LayoutIndicator.OffsetX = LayoutOffsetXSlider.Value;
         _settings.LayoutIndicator.OffsetY = LayoutOffsetYSlider.Value;
+        _settings.Keyboard.RepeatEnabled = RepeatEnabledCheckBox.IsChecked == true;
+        _settings.Keyboard.SoundEnabled = SoundEnabledCheckBox.IsChecked == true;
         _settings.Keyboard.RepeatDelayMs = (int)RepeatDelaySlider.Value;
         _settings.Keyboard.RepeatIntervalMs = (int)RepeatRateSlider.Value;
         _settings.Keyboard.RussianSound = ReadTag(RussianSoundCombo, KeySound.None);
         _settings.Keyboard.EnglishSound = ReadTag(EnglishSoundCombo, KeySound.None);
         if (_enabledMenuItem is not null) _enabledMenuItem.Checked = _settings.Enabled;
-        ThicknessValue.Text = $"{profile.Thickness:0} px";
-        PaddingValue.Text = $"{profile.Padding:+0;-0;0} px";
-        RadiusValue.Text = $"{profile.CornerRadius:0} px";
-        LayoutSizeValue.Text = $"{_settings.LayoutIndicator.Size:0}";
-        LayoutOpacityValue.Text = $"{_settings.LayoutIndicator.Opacity:P0}";
-        LayoutOffsetXValue.Text = $"{_settings.LayoutIndicator.OffsetX:0}";
-        LayoutOffsetYValue.Text = $"{_settings.LayoutIndicator.OffsetY:0}";
-        RepeatDelayValue.Text = $"{_settings.Keyboard.RepeatDelayMs} мс";
-        RepeatRateValue.Text = $"{_settings.Keyboard.RepeatIntervalMs} мс";
+        if (_soundMenuItem is not null) _soundMenuItem.Checked = _settings.Keyboard.SoundEnabled;
+        if (_repeatMenuItem is not null) _repeatMenuItem.Checked = _settings.Keyboard.RepeatEnabled;
+        if (_layoutMenuItem is not null) _layoutMenuItem.Checked = _settings.LayoutIndicator.Enabled;
+        if (_startupMenuItem is not null) _startupMenuItem.Checked = _settings.StartWithWindows;
+        UpdateSliderValueLabels();
         UpdateConditionalControls();
         _saveTimer.Stop();
         _saveTimer.Start();
@@ -327,6 +476,21 @@ public partial class MainWindow : Window
         _keyboardService.Apply(_settings);
         _activePreviewRenderer.Update(_settings, 0, true, false);
         _inactivePreviewRenderer.Update(_settings, 0, false, false);
+    }
+
+    private void UpdateSliderValueLabels()
+    {
+        BorderProfile profile = CurrentProfile;
+        ThicknessValue.Text = $"{profile.Thickness:0} px";
+        PaddingValue.Text = $"{profile.Padding:+0;-0;0} px";
+        RadiusValue.Text = $"{profile.CornerRadius:0} px";
+        LayoutSizeValue.Text = $"{_settings.LayoutIndicator.Size:0}";
+        LayoutOpacityValue.Text = $"{_settings.LayoutIndicator.Opacity:P0}";
+        LayoutOffsetXValue.Text = $"{_settings.LayoutIndicator.OffsetX:0}";
+        LayoutOffsetYValue.Text = $"{_settings.LayoutIndicator.OffsetY:0}";
+        string milliseconds = LocalizationService.Text("MillisecondsShort");
+        RepeatDelayValue.Text = $"{_settings.Keyboard.RepeatDelayMs} {milliseconds}";
+        RepeatRateValue.Text = $"{_settings.Keyboard.RepeatIntervalMs} {milliseconds}";
     }
 
     private void SideSettingChanged(object sender, RoutedEventArgs e)
@@ -359,6 +523,16 @@ public partial class MainWindow : Window
         if (_loading || sender is not System.Windows.Controls.CheckBox { Tag: string tag } checkBox) return;
         if (!Enum.TryParse(tag, out LayoutIndicatorSide side)) return;
         _settings.LayoutIndicator.Side = checkBox.IsChecked == true ? side : null;
+        _loading = true;
+        LoadLayoutSideControls();
+        _loading = false;
+        ApplySettings();
+    }
+
+    private void DefaultLayoutSideChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || !IsLoaded) return;
+        _settings.LayoutIndicator.Side = null;
         _loading = true;
         LoadLayoutSideControls();
         _loading = false;
@@ -403,22 +577,34 @@ public partial class MainWindow : Window
 
     private void UpdateConditionalControls()
     {
+        bool bordersEnabled = EnabledCheckBox.IsChecked == true;
+        SetOptionsState(BorderPreviewOptions, bordersEnabled);
+        SetOptionsState(BorderAppearanceOptions, bordersEnabled);
+        SetOptionsState(RepeatOptions, RepeatEnabledCheckBox.IsChecked == true);
+        SetOptionsState(SoundOptions, SoundEnabledCheckBox.IsChecked == true);
         SecondaryColorPanel.Visibility = ReadTag(FillStyleCombo, BorderFillStyle.Solid) == BorderFillStyle.AlongLine
             ? Visibility.Visible : Visibility.Collapsed;
         bool canAnimate = ReadTag(LineStyleCombo, BorderLineStyle.Solid) != BorderLineStyle.Solid;
         bool canAnimateGradient = ReadTag(FillStyleCombo, BorderFillStyle.Solid) == BorderFillStyle.AlongLine;
         AnimateCheckBox.IsEnabled = canAnimate;
         AnimateGradientCheckBox.IsEnabled = canAnimateGradient;
-        AnimationOptions.IsEnabled = (canAnimate && AnimateCheckBox.IsChecked == true)
+        bool animationEnabled = (canAnimate && AnimateCheckBox.IsChecked == true)
             || (canAnimateGradient && AnimateGradientCheckBox.IsChecked == true);
+        AnimationOptions.IsEnabled = animationEnabled;
+        SpeedOptions.Opacity = animationEnabled ? 1 : 0.45;
         ActiveElevatedColorButton.IsEnabled = ActiveElevatedColorCheckBox.IsChecked == true;
         InactiveElevatedColorButton.IsEnabled = InactiveElevatedColorCheckBox.IsChecked == true;
-        LayoutIndicatorOptions.IsEnabled = LayoutIndicatorCheckBox.IsChecked == true;
-        LayoutPositionOptions.IsEnabled = LayoutIndicatorCheckBox.IsChecked == true;
-        LayoutSideSelector.IsEnabled = LayoutIndicatorCheckBox.IsChecked == true;
-        LayoutSideSelector.Opacity = 1;
+        bool layoutEnabled = LayoutIndicatorCheckBox.IsChecked == true;
+        SetOptionsState(LayoutIndicatorOptions, layoutEnabled);
+        SetOptionsState(LayoutPositionOptions, layoutEnabled);
         LayoutPreviewTransform.X = _settings.LayoutIndicator.OffsetX * 0.35;
         LayoutPreviewTransform.Y = _settings.LayoutIndicator.OffsetY * 0.35;
+    }
+
+    private static void SetOptionsState(UIElement element, bool enabled)
+    {
+        element.IsEnabled = enabled;
+        element.Opacity = enabled ? 1 : 0.45;
     }
 
     private void ChoosePrimaryColor(object sender, RoutedEventArgs e)
@@ -473,13 +659,13 @@ public partial class MainWindow : Window
     {
         BorderProfile profile = CurrentProfile;
         PrimarySwatch.Background = new SolidColorBrush(profile.ParsedColor);
-        PrimaryColorText.Text = profile.ParsedColor.ToString()[^6..];
+        PrimaryColorText.Text = $"#{profile.ParsedColor.ToString()[^6..]}";
         SecondarySwatch.Background = new SolidColorBrush(profile.ParsedSecondaryColor);
-        SecondaryColorText.Text = profile.ParsedSecondaryColor.ToString()[^6..];
+        SecondaryColorText.Text = $"#{profile.ParsedSecondaryColor.ToString()[^6..]}";
         ActiveElevatedSwatch.Background = new SolidColorBrush(_settings.Active.ParsedElevatedColor);
-        ActiveElevatedColorText.Text = _settings.Active.ParsedElevatedColor.ToString()[^6..];
+        ActiveElevatedColorText.Text = $"#{_settings.Active.ParsedElevatedColor.ToString()[^6..]}";
         InactiveElevatedSwatch.Background = new SolidColorBrush(_settings.Inactive.ParsedElevatedColor);
-        InactiveElevatedColorText.Text = _settings.Inactive.ParsedElevatedColor.ToString()[^6..];
+        InactiveElevatedColorText.Text = $"#{_settings.Inactive.ParsedElevatedColor.ToString()[^6..]}";
     }
 
     private void ToggleEnabled()
@@ -487,7 +673,24 @@ public partial class MainWindow : Window
         Dispatcher.Invoke(() => EnabledCheckBox.IsChecked = !(EnabledCheckBox.IsChecked == true));
     }
 
+    private void ToggleSound() => Dispatcher.Invoke(() =>
+        SoundEnabledCheckBox.IsChecked = !(SoundEnabledCheckBox.IsChecked == true));
+
+    private void ToggleRepeat() => Dispatcher.Invoke(() =>
+        RepeatEnabledCheckBox.IsChecked = !(RepeatEnabledCheckBox.IsChecked == true));
+
+    private void ToggleLayoutIndicator() => Dispatcher.Invoke(() =>
+        LayoutIndicatorCheckBox.IsChecked = !(LayoutIndicatorCheckBox.IsChecked == true));
+
+    private void ToggleStartup() => Dispatcher.Invoke(() =>
+        StartupCheckBox.IsChecked = !(StartupCheckBox.IsChecked == true));
+
     private void HideToTray(object sender, RoutedEventArgs e) => Hide();
+
+    private void OpenRepository(object sender, RoutedEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo("https://github.com/AM-R/borderus") { UseShellExecute = true });
+    }
 
     private void ShowFromTray()
     {
@@ -516,6 +719,7 @@ public partial class MainWindow : Window
         {
             _exiting = true;
             SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+            _sliderApplyTimer.Stop();
             _saveTimer.Stop();
             SettingsStore.Save(_settings);
             _borderService.Dispose();

@@ -28,7 +28,7 @@ dotnet run --project Borderus.csproj
 Release-сборка:
 
 ```powershell
-dotnet publish Borderus.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
+dotnet publish Borderus.csproj -c Release
 ```
 
 Закрытие окна настроек скрывает Borderus в трей. Полный выход доступен через контекстное меню значка в трее.

@@ -20,7 +20,12 @@ internal static class SettingsStore
     {
         try
         {
-            return JsonSerializer.Deserialize<BorderSettings>(File.ReadAllText(FilePath)) ?? new();
+            string json = File.ReadAllText(FilePath);
+            BorderSettings settings = JsonSerializer.Deserialize<BorderSettings>(json) ?? new();
+            using JsonDocument document = JsonDocument.Parse(json);
+            if (!document.RootElement.TryGetProperty(nameof(BorderSettings.StartWithWindows), out _))
+                settings.StartWithWindows = StartupService.IsEnabled();
+            return settings;
         }
         catch
         {

@@ -10,12 +10,16 @@ public enum AnimationDirection { Clockwise, CounterClockwise }
 public enum LayoutIndicatorPlacement { Floating, Inside }
 public enum LayoutIndicatorContent { FlagOnly, FlagAndCode }
 public enum LayoutIndicatorAnchor { Field, Caret }
+public enum LayoutIndicatorHorizontalSide { Right, Left }
+public enum LayoutIndicatorInputMode { Everywhere, TextInputOnly }
 public enum LayoutIndicatorSide { Top, Right, Bottom, Left }
 public enum KeySound { None, Soft, Click, Mechanical, SystemAsterisk, SystemBeep, SystemExclamation, SystemHand, Custom }
 public sealed class KeyboardSettings
 {
-    public int RepeatDelayMs { get; set; } = 250;
-    public int RepeatIntervalMs { get; set; } = 25;
+    public bool RepeatEnabled { get; set; } = true;
+    public bool SoundEnabled { get; set; } = true;
+    public int RepeatDelayMs { get; set; } = 200;
+    public int RepeatIntervalMs { get; set; } = 20;
     public KeySound RussianSound { get; set; }
     public KeySound EnglishSound { get; set; }
     public string RussianSoundFile { get; set; } = string.Empty;
@@ -23,6 +27,8 @@ public sealed class KeyboardSettings
 
     public KeyboardSettings Copy() => new()
     {
+        RepeatEnabled = RepeatEnabled,
+        SoundEnabled = SoundEnabled,
         RepeatDelayMs = RepeatDelayMs,
         RepeatIntervalMs = RepeatIntervalMs,
         RussianSound = RussianSound,
@@ -34,13 +40,15 @@ public sealed class KeyboardSettings
 
 public sealed class LayoutIndicatorSettings
 {
-    public bool Enabled { get; set; }
-    public double Size { get; set; } = 32;
-    public double Opacity { get; set; } = 0.9;
+    public bool Enabled { get; set; } = true;
+    public double Size { get; set; } = 20;
+    public double Opacity { get; set; } = 0.75;
     public LayoutIndicatorPlacement Placement { get; set; } = LayoutIndicatorPlacement.Floating;
-    public LayoutIndicatorContent Content { get; set; } = LayoutIndicatorContent.FlagAndCode;
-    public bool ShowContainer { get; set; } = true;
-    public LayoutIndicatorAnchor Anchor { get; set; } = LayoutIndicatorAnchor.Field;
+    public LayoutIndicatorContent Content { get; set; } = LayoutIndicatorContent.FlagOnly;
+    public LayoutIndicatorInputMode InputMode { get; set; } = LayoutIndicatorInputMode.TextInputOnly;
+    public bool ShowContainer { get; set; }
+    public LayoutIndicatorAnchor Anchor { get; set; } = LayoutIndicatorAnchor.Caret;
+    public LayoutIndicatorHorizontalSide DefaultSide { get; set; } = LayoutIndicatorHorizontalSide.Right;
     public LayoutIndicatorSide? Side { get; set; }
     public double OffsetX { get; set; } = 8;
     public double OffsetY { get; set; }
@@ -52,8 +60,10 @@ public sealed class LayoutIndicatorSettings
         Opacity = Opacity,
         Placement = Placement,
         Content = Content,
+        InputMode = InputMode,
         ShowContainer = ShowContainer,
         Anchor = Anchor,
+        DefaultSide = DefaultSide,
         Side = Side,
         OffsetX = OffsetX,
         OffsetY = OffsetY
@@ -64,10 +74,10 @@ public sealed class BorderProfile
 {
     public double Thickness { get; set; } = 1;
     public double Padding { get; set; } = -1;
-    public string Color { get; set; } = "#FF0078D7";
+    public string Color { get; set; } = "#0078D7";
     public string SecondaryColor { get; set; } = "#FF00B7C3";
-    public bool UseElevatedColor { get; set; }
-    public string ElevatedColor { get; set; } = "#FFFFB900";
+    public bool UseElevatedColor { get; set; } = true;
+    public string ElevatedColor { get; set; } = "#FF0000";
     public BorderLineStyle LineStyle { get; set; } = BorderLineStyle.Solid;
     public BorderFillStyle FillStyle { get; set; } = BorderFillStyle.Solid;
     public bool Animate { get; set; }
@@ -114,12 +124,15 @@ public sealed class BorderProfile
 public sealed class BorderSettings
 {
     public bool Enabled { get; set; } = true;
+    public bool ShowInFullscreen { get; set; }
+    public bool StartWithWindows { get; set; } = true;
+    public string Language { get; set; } = "ru";
     public BorderProfile Active { get; set; } = new();
     public BorderProfile Inactive { get; set; } = new()
     {
-        Color = "#FF808080",
+        Color = "#808080",
         SecondaryColor = "#FFB0B0B0",
-        ElevatedColor = "#FFFF8C00"
+        ElevatedColor = "#EE8300"
     };
     public LayoutIndicatorSettings LayoutIndicator { get; set; } = new();
     public KeyboardSettings Keyboard { get; set; } = new();
@@ -127,6 +140,9 @@ public sealed class BorderSettings
     public BorderSettings Copy() => new()
     {
         Enabled = Enabled,
+        ShowInFullscreen = ShowInFullscreen,
+        StartWithWindows = StartWithWindows,
+        Language = Language,
         Active = Active.Copy(),
         Inactive = Inactive.Copy(),
         LayoutIndicator = LayoutIndicator.Copy(),

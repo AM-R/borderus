@@ -5,6 +5,10 @@ namespace Borderus.Native;
 
 internal static class NativeMethods
 {
+    private static readonly object ConsoleLayoutLock = new();
+    private static readonly Dictionary<nint, nint> ConsoleLayouts = new();
+    private static nint _lastKnownLayout;
+
     internal const int GwlExStyle = -20;
     internal const int GwlHwndParent = -8;
     internal const long WsExTransparent = 0x00000020L;
@@ -36,7 +40,6 @@ internal static class NativeMethods
     internal const int WmSysKeyDown = 0x0104;
     internal const int WmKeyUp = 0x0101;
     internal const int WmSysKeyUp = 0x0105;
-    internal const uint LlkhfInjected = 0x00000010;
     internal const uint KeyeventfKeyup = 0x0002;
     internal const uint SpiGetKeyboardDelay = 0x0016;
     internal const uint SpiSetKeyboardDelay = 0x0017;
@@ -44,6 +47,7 @@ internal static class NativeMethods
     internal const uint SpifSendChange = 0x0002;
     internal const int SwHide = 0;
     internal const int SwShowNoActivate = 4;
+    private const uint MonitorDefaultToNearest = 2;
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const uint TokenQuery = 0x0008;
     private const int TokenElevation = 20;
@@ -97,6 +101,9 @@ internal static class NativeMethods
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     internal static extern int GetWindowText(nint hWnd, StringBuilder text, int count);
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(nint hWnd, StringBuilder className, int count);
+
     [DllImport("user32.dll")]
     internal static extern uint GetWindowThreadProcessId(nint hWnd, out uint processId);
 
@@ -105,6 +112,105 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern nint GetKeyboardLayout(uint threadId);
+
+    [DllImport("user32.dll")]
+    private static extern int GetKeyboardLayoutList(int count, [Out] nint[]? layouts);
+
+    internal static int GetKeyboardLanguageId(nint foregroundWindow)
+    {
+        if (IsStandaloneConsoleWindow(foregroundWindow))
+        {
+            lock (ConsoleLayoutLock)
+                return GetLanguageId(GetConsoleLayout(foregroundWindow));
+        }
+
+        nint layout = GetWindowKeyboardLayout(foregroundWindow);
+        if (layout != 0)
+        {
+            lock (ConsoleLayoutLock) _lastKnownLayout = layout;
+        }
+        return GetLanguageId(layout);
+    }
+
+    internal static bool IsStandaloneConsoleWindow(nint window)
+    {
+        var className = new StringBuilder(32);
+        return GetClassName(window, className, className.Capacity) > 0 &&
+            className.ToString() == "ConsoleWindowClass";
+    }
+
+    internal static void CycleStandaloneConsoleKeyboardLayout(nint window, bool reverse)
+    {
+        if (!IsStandaloneConsoleWindow(window)) return;
+
+        nint[] layouts = GetInstalledKeyboardLayouts();
+        if (layouts.Length < 2) return;
+
+        lock (ConsoleLayoutLock)
+        {
+            nint current = GetConsoleLayout(window);
+            int currentIndex = Array.IndexOf(layouts, current);
+            if (currentIndex < 0)
+            {
+                int language = GetLanguageId(current);
+                currentIndex = Array.FindIndex(layouts, layout => GetLanguageId(layout) == language);
+            }
+
+            int nextIndex = currentIndex < 0
+                ? (reverse ? layouts.Length - 1 : 0)
+                : (currentIndex + (reverse ? -1 : 1) + layouts.Length) % layouts.Length;
+            ConsoleLayouts[window] = layouts[nextIndex];
+        }
+    }
+
+    private static nint GetWindowKeyboardLayout(nint foregroundWindow)
+    {
+
+        uint foregroundThread = GetWindowThreadProcessId(foregroundWindow, out _);
+        if (foregroundThread == 0) return 0;
+
+        uint inputThread = foregroundThread;
+        var info = new GuiThreadInfo { Size = Marshal.SizeOf<GuiThreadInfo>() };
+        if (GetGUIThreadInfo(foregroundThread, ref info) && info.FocusWindow != 0)
+        {
+            uint focusThread = GetWindowThreadProcessId(info.FocusWindow, out _);
+            if (focusThread != 0) inputThread = focusThread;
+        }
+
+        nint layout = GetKeyboardLayout(inputThread);
+        if (layout == 0 && inputThread != foregroundThread)
+            layout = GetKeyboardLayout(foregroundThread);
+        return layout;
+    }
+
+    private static nint GetConsoleLayout(nint window)
+    {
+        if (ConsoleLayouts.TryGetValue(window, out nint layout)) return layout;
+
+        layout = _lastKnownLayout;
+        if (layout == 0) layout = GetKeyboardLayout(0);
+        if (layout == 0)
+        {
+            nint[] layouts = GetInstalledKeyboardLayouts();
+            if (layouts.Length > 0) layout = layouts[0];
+        }
+        ConsoleLayouts[window] = layout;
+        return layout;
+    }
+
+    private static nint[] GetInstalledKeyboardLayouts()
+    {
+        int count = GetKeyboardLayoutList(0, null);
+        if (count <= 0) return [];
+
+        var layouts = new nint[count];
+        int actualCount = GetKeyboardLayoutList(layouts.Length, layouts);
+        if (actualCount <= 0) return [];
+        if (actualCount != layouts.Length) Array.Resize(ref layouts, actualCount);
+        return layouts;
+    }
+
+    private static int GetLanguageId(nint layout) => (int)(layout.ToInt64() & 0xffff);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -152,6 +258,13 @@ internal static class NativeMethods
     internal static extern bool GetWindowRect(nint hWnd, out Rect rect);
 
     [DllImport("user32.dll")]
+    private static extern nint MonitorFromWindow(nint hWnd, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(nint monitor, ref MonitorInfo info);
+
+    [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool ShowWindow(nint hWnd, int command);
 
@@ -183,6 +296,20 @@ internal static class NativeMethods
 
     internal static bool IsCloaked(nint hWnd) =>
         DwmGetWindowAttribute(hWnd, DwmaCloaked, out int value, sizeof(int)) == 0 && value != 0;
+
+    internal static bool IsFullscreenWindow(nint hWnd)
+    {
+        if (!GetWindowRect(hWnd, out Rect windowRect)) return false;
+
+        nint monitor = MonitorFromWindow(hWnd, MonitorDefaultToNearest);
+        if (monitor == 0) return false;
+
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        if (!GetMonitorInfo(monitor, ref info)) return false;
+
+        return windowRect.Left <= info.Monitor.Left && windowRect.Top <= info.Monitor.Top
+            && windowRect.Right >= info.Monitor.Right && windowRect.Bottom >= info.Monitor.Bottom;
+    }
 
     internal static bool IsProcessElevated(nint hWnd)
     {
@@ -221,6 +348,15 @@ internal static class NativeMethods
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public int Size;
+        public Rect Monitor;
+        public Rect WorkArea;
+        public uint Flags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     internal struct GuiThreadInfo
     {
         public int Size;
@@ -249,4 +385,5 @@ internal static class NativeMethods
     {
         public int IsElevated;
     }
+
 }
