@@ -14,11 +14,13 @@ internal sealed class KeyboardService : IDisposable
     private readonly Dictionary<string, SoundPlayer> _filePlayers = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<int> _pressedKeys = new();
     private readonly object _repeatLock = new();
+    private readonly object _soundLock = new();
     private CancellationTokenSource? _repeatCancellation;
     private KeyboardSettings _settings;
     private nint _hook;
     private int _heldKey;
-    private bool _disposed;
+    private int _soundQueued;
+    private volatile bool _disposed;
 
     public KeyboardService(BorderSettings settings)
     {
@@ -29,15 +31,20 @@ internal sealed class KeyboardService : IDisposable
 
     public void Apply(BorderSettings settings)
     {
-        _settings = settings.Keyboard.Copy();
-        if (_settings.RepeatEnabled) return;
+        KeyboardSettings keyboard = settings.Keyboard.Copy();
+        Volatile.Write(ref _settings, keyboard);
+        if (keyboard.RepeatEnabled) return;
         Interlocked.Exchange(ref _heldKey, 0);
         StopRepeat();
     }
 
     public void Preview(KeySound sound, string? customFile = null)
     {
-        if (_settings.SoundEnabled && sound != KeySound.None) Play(sound, customFile);
+        if (!Volatile.Read(ref _settings).SoundEnabled || sound == KeySound.None) return;
+        lock (_soundLock)
+        {
+            if (!_disposed) Play(sound, customFile);
+        }
     }
 
     private nint OnKeyboardEvent(int code, nint message, nint data)
@@ -50,25 +57,26 @@ internal sealed class KeyboardService : IDisposable
         int key = (int)input.VirtualKey;
         bool keyDown = message == NativeMethods.WmKeyDown || message == NativeMethods.WmSysKeyDown;
         bool keyUp = message == NativeMethods.WmKeyUp || message == NativeMethods.WmSysKeyUp;
+        KeyboardSettings settings = Volatile.Read(ref _settings);
         bool firstKeyDown = keyDown && _pressedKeys.Add(key);
         if (keyUp) _pressedKeys.Remove(key);
         if (firstKeyDown) TrackStandaloneConsoleLayoutSwitch(key);
 
-        if (_settings.RepeatEnabled && IsRepeatableKey(key) && keyDown && !IsSystemShortcut())
+        if (settings.RepeatEnabled && IsRepeatableKey(key) && keyDown && !IsSystemShortcut())
         {
             if (Interlocked.CompareExchange(ref _heldKey, key, 0) == 0)
             {
-                if (IsCharacterKey(key)) PlayCurrentLayoutSound();
+                if (IsCharacterKey(key)) QueueCurrentLayoutSound();
                 StartRepeat(key);
             }
             // Suppress Windows' own repeats. The first physical key-down still reaches the target.
             else if (Volatile.Read(ref _heldKey) == key)
                 return 1;
         }
-        else if (_settings.RepeatEnabled && keyUp && Interlocked.CompareExchange(ref _heldKey, 0, key) == key)
+        else if (settings.RepeatEnabled && keyUp && Interlocked.CompareExchange(ref _heldKey, 0, key) == key)
             StopRepeat();
-        else if (!_settings.RepeatEnabled && firstKeyDown && IsCharacterKey(key))
-            PlayCurrentLayoutSound();
+        else if (!settings.RepeatEnabled && firstKeyDown && IsCharacterKey(key))
+            QueueCurrentLayoutSound();
         return NativeMethods.CallNextHookEx(_hook, code, message, data);
     }
 
@@ -76,21 +84,25 @@ internal sealed class KeyboardService : IDisposable
     {
         StopRepeat();
         var cancellation = new CancellationTokenSource();
+        CancellationToken token = cancellation.Token;
+        KeyboardSettings settings = Volatile.Read(ref _settings);
         lock (_repeatLock) _repeatCancellation = cancellation;
         _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(Math.Clamp(_settings.RepeatDelayMs, 10, 1000), cancellation.Token);
-                while (!cancellation.IsCancellationRequested && Volatile.Read(ref _heldKey) == key)
+                await Task.Delay(GetRepeatDelay(key, settings), token);
+                while (!token.IsCancellationRequested && Volatile.Read(ref _heldKey) == key)
                 {
+                    token.ThrowIfCancellationRequested();
                     NativeMethods.keybd_event((byte)key, 0, 0, SyntheticMarker);
                     NativeMethods.keybd_event((byte)key, 0, NativeMethods.KeyeventfKeyup, SyntheticMarker);
-                    if (IsCharacterKey(key)) PlayCurrentLayoutSound();
-                    await Task.Delay(Math.Clamp(_settings.RepeatIntervalMs, 5, 250), cancellation.Token);
+                    if (IsCharacterKey(key)) QueueCurrentLayoutSound();
+                    await Task.Delay(GetRepeatInterval(key, settings), token);
                 }
             }
             catch (OperationCanceledException) { }
+            finally { cancellation.Dispose(); }
         });
     }
 
@@ -103,17 +115,41 @@ internal sealed class KeyboardService : IDisposable
             _repeatCancellation = null;
         }
         cancellation?.Cancel();
-        cancellation?.Dispose();
     }
 
-    private void PlayCurrentLayoutSound()
+    private static int GetRepeatDelay(int key, KeyboardSettings settings) => Math.Clamp(IsCharacterKey(key)
+        ? settings.RepeatDelayMs : settings.NonCharacterRepeatDelayMs, 10, 1000);
+
+    private static int GetRepeatInterval(int key, KeyboardSettings settings) => Math.Clamp(IsCharacterKey(key)
+        ? settings.RepeatIntervalMs : settings.NonCharacterRepeatIntervalMs, 5, 250);
+
+    private void QueueCurrentLayoutSound()
     {
-        if (!_settings.SoundEnabled) return;
+        if (!Volatile.Read(ref _settings).SoundEnabled || Interlocked.Exchange(ref _soundQueued, 1) != 0) return;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                lock (_soundLock)
+                {
+                    KeyboardSettings settings = Volatile.Read(ref _settings);
+                    if (!_disposed && settings.SoundEnabled) PlayCurrentLayoutSound(settings);
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _soundQueued, 0);
+            }
+        });
+    }
+
+    private void PlayCurrentLayoutSound(KeyboardSettings settings)
+    {
         nint foreground = NativeMethods.GetForegroundWindow();
         int language = NativeMethods.GetKeyboardLanguageId(foreground);
         bool russian = language == 0x0419;
-        Play(russian ? _settings.RussianSound : _settings.EnglishSound,
-            russian ? _settings.RussianSoundFile : _settings.EnglishSoundFile);
+        Play(russian ? settings.RussianSound : settings.EnglishSound,
+            russian ? settings.RussianSoundFile : settings.EnglishSoundFile);
     }
 
     private void Play(KeySound sound, string? customFile = null)
@@ -222,9 +258,12 @@ internal sealed class KeyboardService : IDisposable
         _disposed = true;
         StopRepeat();
         if (_hook != 0) NativeMethods.UnhookWindowsHookEx(_hook);
-        foreach (SoundPlayer player in _players.Values) player.Dispose();
-        foreach (SoundPlayer player in _filePlayers.Values) player.Dispose();
-        _players.Clear();
-        _filePlayers.Clear();
+        lock (_soundLock)
+        {
+            foreach (SoundPlayer player in _players.Values) player.Dispose();
+            foreach (SoundPlayer player in _filePlayers.Values) player.Dispose();
+            _players.Clear();
+            _filePlayers.Clear();
+        }
     }
 }

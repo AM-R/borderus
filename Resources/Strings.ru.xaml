@@ -72,6 +72,8 @@
   <system:String x:Key="OffsetY">Смещение Y</system:String>
   <system:String x:Key="TabKeys">Клавиши</system:String>
   <system:String x:Key="Keyboard">Клавиатура</system:String>
+  <system:String x:Key="CharacterKeys">Символы</system:String>
+  <system:String x:Key="NavigationKeys">Навигация и редактирование</system:String>
   <system:String x:Key="RepeatDelay">Задержка до начала повтора</system:String>
   <system:String x:Key="ResetDelay">Сбросить: 250 мс</system:String>
   <system:String x:Key="RepeatRate">Скорость после начала повтора</system:String>
@@ -93,8 +95,8 @@
   <system:String x:Key="GeneralSettings">Общие настройки</system:String>
   <system:String x:Key="Language">Язык</system:String>
   <system:String x:Key="LanguageDescription">Язык интерфейса меняется сразу и сохраняется.</system:String>
-  <system:String x:Key="Russian">Русский</system:String>
-  <system:String x:Key="English">Английский</system:String>
+  <system:String x:Key="Russian">🇷🇺 Русский</system:String>
+  <system:String x:Key="English">🇺🇸 Английский</system:String>
   <system:String x:Key="StartWithWindows">Запускать вместе с Windows</system:String>
   <system:String x:Key="StartupDescription">Запускает Borderus при входе в систему с правами для окон администратора.</system:String>
   <system:String x:Key="ShowBordersInFullscreen">Показывать рамки в полноэкранном режиме</system:String>

@@ -13,10 +13,14 @@ internal static class NativeMethods
     internal const int GwlHwndParent = -8;
     internal const long WsExTransparent = 0x00000020L;
     internal const long WsExToolWindow = 0x00000080L;
+    internal const long WsExLayered = 0x00080000L;
     internal const long WsExNoActivate = 0x08000000L;
     internal const uint SwpNoActivate = 0x0010;
+    internal const uint SwpNoMove = 0x0002;
+    internal const uint SwpNoSize = 0x0001;
     internal const uint SwpNoZOrder = 0x0004;
     internal const uint SwpNoOwnerZOrder = 0x0200;
+    internal const uint SwpNoCopyBits = 0x0100;
     internal const uint SwpShowWindow = 0x0040;
     internal const uint GwOwner = 4;
     internal const uint GwHwndPrev = 3;
@@ -47,6 +51,11 @@ internal static class NativeMethods
     internal const uint SpifSendChange = 0x0002;
     internal const int SwHide = 0;
     internal const int SwShowNoActivate = 4;
+    internal const uint UlwAlpha = 0x00000002;
+    internal const byte AcSrcOver = 0x00;
+    internal const byte AcSrcAlpha = 0x01;
+    internal const uint DibRgbColors = 0;
+    internal const uint BiRgb = 0;
     private const uint MonitorDefaultToNearest = 2;
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const uint TokenQuery = 0x0008;
@@ -272,6 +281,29 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetWindowPos(nint hWnd, nint insertAfter, int x, int y, int width, int height, uint flags);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UpdateLayeredWindow(nint hWnd, nint destinationDc, ref NativePoint destination,
+        ref NativeSize size, nint sourceDc, ref NativePoint source, uint colorKey, ref BlendFunction blend, uint flags);
+
+    [DllImport("gdi32.dll")]
+    internal static extern nint CreateCompatibleDC(nint dc);
+
+    [DllImport("gdi32.dll")]
+    internal static extern nint CreateDIBSection(nint dc, ref BitmapInfo bitmapInfo, uint usage,
+        out nint bits, nint section, uint offset);
+
+    [DllImport("gdi32.dll")]
+    internal static extern nint SelectObject(nint dc, nint value);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool DeleteDC(nint dc);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool DeleteObject(nint value);
+
     [DllImport("dwmapi.dll")]
     internal static extern int DwmGetWindowAttribute(nint hWnd, int attribute, out Rect rect, int size);
 
@@ -345,6 +377,45 @@ internal static class NativeMethods
     {
         public int X;
         public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct NativeSize
+    {
+        public int Width;
+        public int Height;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal struct BlendFunction
+    {
+        public byte Operation;
+        public byte Flags;
+        public byte SourceConstantAlpha;
+        public byte AlphaFormat;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct BitmapInfoHeader
+    {
+        public uint Size;
+        public int Width;
+        public int Height;
+        public ushort Planes;
+        public ushort BitCount;
+        public uint Compression;
+        public uint SizeImage;
+        public int XPelsPerMeter;
+        public int YPelsPerMeter;
+        public uint ColorsUsed;
+        public uint ColorsImportant;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct BitmapInfo
+    {
+        public BitmapInfoHeader Header;
+        public uint Colors;
     }
 
     [StructLayout(LayoutKind.Sequential)]

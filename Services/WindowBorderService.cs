@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Borderus.Models;
 using Borderus.Native;
@@ -18,7 +19,6 @@ internal sealed class WindowBorderService : IDisposable
     private readonly NativeMethods.WinEventProc _eventCallback;
     private readonly uint _ownProcessId = (uint)Environment.ProcessId;
     private readonly nint[] _eventHooks = new nint[4];
-    private readonly System.Threading.Timer _moveTimer;
     private BorderSettings _settings;
     private nint _foregroundWindow;
     private nint _movingWindow;
@@ -33,17 +33,15 @@ internal sealed class WindowBorderService : IDisposable
         _settings = settings.Copy();
         _foregroundWindow = NativeMethods.GetForegroundWindow();
         _eventCallback = OnWinEvent;
-        uint flags = NativeMethods.WineventOutOfContext | NativeMethods.WineventSkipOwnProcess;
+        uint flags = NativeMethods.WineventOutOfContext;
         _eventHooks[0] = NativeMethods.SetWinEventHook(NativeMethods.EventObjectLocationChange,
             NativeMethods.EventObjectLocationChange, 0, _eventCallback, 0, 0, flags);
         _eventHooks[1] = NativeMethods.SetWinEventHook(NativeMethods.EventSystemForeground,
-            NativeMethods.EventSystemForeground, 0, _eventCallback, 0, 0, NativeMethods.WineventOutOfContext);
+            NativeMethods.EventSystemForeground, 0, _eventCallback, 0, 0, flags);
         _eventHooks[2] = NativeMethods.SetWinEventHook(NativeMethods.EventObjectDestroy,
             NativeMethods.EventObjectHide, 0, _eventCallback, 0, 0, flags);
         _eventHooks[3] = NativeMethods.SetWinEventHook(NativeMethods.EventSystemMoveSizeStart,
             NativeMethods.EventSystemMoveSizeEnd, 0, _eventCallback, 0, 0, flags);
-        _moveTimer = new System.Threading.Timer(_ => PositionMovingWindow(), null,
-            Timeout.Infinite, Timeout.Infinite);
 
         _reconcileTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(750), DispatcherPriority.Background,
             (_, _) => ReconcileWindows(), _dispatcher);
@@ -79,7 +77,7 @@ internal sealed class WindowBorderService : IDisposable
 
     private void OnWinEvent(nint hook, uint eventType, nint hWnd, int objectId, int childId, uint eventThread, uint eventTime)
     {
-        if (_disposed || hWnd == 0) return;
+        if (_disposed || hWnd == 0 || IsOwnToolWindow(hWnd)) return;
 
         if (eventType == NativeMethods.EventSystemForeground)
         {
@@ -88,15 +86,12 @@ internal sealed class WindowBorderService : IDisposable
         }
         if (eventType == NativeMethods.EventSystemMoveSizeStart)
         {
-            _movingWindow = hWnd;
-            _moveTimer.Change(0, 8);
+            _dispatcher.BeginInvoke(DispatcherPriority.Send, () => StartMovingWindow(hWnd));
             return;
         }
         if (eventType == NativeMethods.EventSystemMoveSizeEnd)
         {
-            PositionWindow(hWnd);
-            _movingWindow = 0;
-            _moveTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            _dispatcher.BeginInvoke(DispatcherPriority.Send, () => StopMovingWindow(hWnd));
             return;
         }
 
@@ -113,10 +108,31 @@ internal sealed class WindowBorderService : IDisposable
             return;
         }
 
+        if (hWnd != _movingWindow)
+            _dispatcher.BeginInvoke(DispatcherPriority.Render, () => PositionWindow(hWnd));
+    }
+
+    private void StartMovingWindow(nint hWnd)
+    {
+        if (_disposed) return;
+        _movingWindow = hWnd;
+        CompositionTarget.Rendering -= PositionMovingWindow;
+        CompositionTarget.Rendering += PositionMovingWindow;
         PositionWindow(hWnd);
     }
 
-    private void PositionMovingWindow()
+    private void StopMovingWindow(nint hWnd)
+    {
+        CompositionTarget.Rendering -= PositionMovingWindow;
+        _movingWindow = 0;
+        if (NativeMethods.TryGetFrameBounds(hWnd, out var rect) &&
+            NativeMethods.GetWindowRect(hWnd, out var windowRect))
+            _frameOffsets[hWnd] = new FrameOffsets(rect.Left - windowRect.Left, rect.Top - windowRect.Top,
+                rect.Right - windowRect.Right, rect.Bottom - windowRect.Bottom);
+        PositionWindow(hWnd);
+    }
+
+    private void PositionMovingWindow(object? sender, EventArgs e)
     {
         nint hWnd = _movingWindow;
         if (hWnd != 0) PositionWindow(hWnd);
@@ -173,7 +189,8 @@ internal sealed class WindowBorderService : IDisposable
         NativeMethods.EnumWindows((hWnd, _) =>
         {
             if (!ShouldTrack(hWnd) || !NativeMethods.TryGetFrameBounds(hWnd, out var rect)) return true;
-            if (NativeMethods.GetWindowRect(hWnd, out var windowRect))
+            bool moving = hWnd == _movingWindow;
+            if (!moving && NativeMethods.GetWindowRect(hWnd, out var windowRect))
                 _frameOffsets[hWnd] = new FrameOffsets(rect.Left - windowRect.Left, rect.Top - windowRect.Top,
                     rect.Right - windowRect.Right, rect.Bottom - windowRect.Bottom);
             found.Add(hWnd);
@@ -184,15 +201,16 @@ internal sealed class WindowBorderService : IDisposable
                 overlay = _pool.Borrow(hWnd);
                 if (overlay is null || !_overlays.TryAdd(hWnd, overlay))
                 {
-                    overlay?.Close();
+                    if (overlay is not null) _pool.Return(overlay);
                     return true;
                 }
-                overlay.ShowPrepared();
                 bool active = hWnd == _foregroundWindow;
                 overlay.Render(_settings, GetDashOffset(active), active, IsElevated(hWnd));
                 overlay.Position(rect, GetPadding(hWnd));
+                overlay.ShowPrepared();
             }
-            overlay.Position(rect, GetPadding(hWnd));
+            if (moving) PositionWindow(hWnd);
+            else overlay.Position(rect, GetPadding(hWnd));
             return true;
         }, 0);
 
@@ -205,10 +223,17 @@ internal sealed class WindowBorderService : IDisposable
         if (!NativeMethods.IsWindowVisible(hWnd) || NativeMethods.IsIconic(hWnd) || NativeMethods.IsCloaked(hWnd)) return false;
         if (!_settings.ShowInFullscreen && NativeMethods.IsFullscreenWindow(hWnd)) return false;
         NativeMethods.GetWindowThreadProcessId(hWnd, out uint processId);
-        if (processId == _ownProcessId || processId == 0) return false;
+        if (processId == 0) return false;
         long extendedStyle = NativeMethods.GetWindowLongPtr(hWnd, NativeMethods.GwlExStyle).ToInt64();
         if ((extendedStyle & NativeMethods.WsExToolWindow) != 0) return false;
         return NativeMethods.GetWindowTextLength(hWnd) > 0;
+    }
+
+    private bool IsOwnToolWindow(nint hWnd)
+    {
+        NativeMethods.GetWindowThreadProcessId(hWnd, out uint processId);
+        return processId == _ownProcessId &&
+            (NativeMethods.GetWindowLongPtr(hWnd, NativeMethods.GwlExStyle).ToInt64() & NativeMethods.WsExToolWindow) != 0;
     }
 
     private void Animate(object? sender, EventArgs e)
@@ -262,11 +287,11 @@ internal sealed class WindowBorderService : IDisposable
     public void Dispose()
     {
         _disposed = true;
+        CompositionTarget.Rendering -= PositionMovingWindow;
         _reconcileTimer.Stop();
         _animationTimer.Stop();
         foreach (nint hook in _eventHooks)
             if (hook != 0) NativeMethods.UnhookWinEvent(hook);
-        _moveTimer.Dispose();
         HideAll();
         _pool.Dispose();
     }

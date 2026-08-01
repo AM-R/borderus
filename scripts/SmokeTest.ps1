@@ -27,7 +27,7 @@ Add-Type -TypeDefinition $native
 $borderus = $null
 $notepad = $null
 try {
-    $borderus = Start-Process -FilePath $AppPath -WindowStyle Hidden -PassThru
+    $borderus = Start-Process -FilePath $AppPath -PassThru
     $notepad = Start-Process -FilePath 'notepad.exe' -PassThru
 
     $deadline = [DateTime]::UtcNow.AddSeconds(5)
@@ -40,6 +40,64 @@ try {
     $target = $notepad.MainWindowHandle
     $targetRect = New-Object BorderusSmokeNative+Rect
     [BorderusSmokeNative]::GetWindowRect($target, [ref]$targetRect) | Out-Null
+    $settings = [IntPtr]::Zero
+    $settingsDeadline = [DateTime]::UtcNow.AddSeconds(5)
+    do {
+        [BorderusSmokeNative]::EnumWindows({
+            param($hwnd, $param)
+            $pidValue = [uint32]0
+            [BorderusSmokeNative]::GetWindowThreadProcessId($hwnd, [ref]$pidValue) | Out-Null
+            if ($pidValue -eq $borderus.Id -and [BorderusSmokeNative]::GetWindowTextLength($hwnd) -gt 0 -and
+                [BorderusSmokeNative]::IsWindowVisible($hwnd)) {
+                $script:settings = $hwnd
+                return $false
+            }
+            return $true
+        }, [IntPtr]::Zero) | Out-Null
+        if ($settings -eq [IntPtr]::Zero) { Start-Sleep -Milliseconds 10 }
+    } until ($settings -ne [IntPtr]::Zero -or [DateTime]::UtcNow -ge $settingsDeadline)
+    if ($settings -eq [IntPtr]::Zero) { throw 'Borderus Settings window was not found.' }
+
+    $settingsRect = New-Object BorderusSmokeNative+Rect
+    [BorderusSmokeNative]::GetWindowRect($settings, [ref]$settingsRect) | Out-Null
+    $settingsOverlay = [IntPtr]::Zero
+    $settingsOverlayDeadline = [DateTime]::UtcNow.AddSeconds(5)
+    do {
+        $candidate = [BorderusSmokeNative]::GetWindow($settings, 3)
+        $pidValue = [uint32]0
+        [BorderusSmokeNative]::GetWindowThreadProcessId($candidate, [ref]$pidValue) | Out-Null
+        if ($pidValue -eq $borderus.Id -and [BorderusSmokeNative]::GetWindowTextLength($candidate) -eq 0 -and
+            [BorderusSmokeNative]::IsWindowVisible($candidate)) {
+            $settingsOverlay = $candidate
+        }
+        else {
+            Start-Sleep -Milliseconds 10
+        }
+    } until ($settingsOverlay -ne [IntPtr]::Zero -or [DateTime]::UtcNow -ge $settingsOverlayDeadline)
+    if ($settingsOverlay -eq [IntPtr]::Zero) {
+        throw 'Settings border overlay was not created directly above the Settings window.'
+    }
+
+    $settingsOverlayRect = New-Object BorderusSmokeNative+Rect
+    [BorderusSmokeNative]::GetWindowRect($settingsOverlay, [ref]$settingsOverlayRect) | Out-Null
+    $settingsLeftOffset = $settingsRect.Left - $settingsOverlayRect.Left
+    $settingsTopOffset = $settingsRect.Top - $settingsOverlayRect.Top
+    $settingsRightOffset = $settingsOverlayRect.Right - $settingsRect.Right
+    $settingsBottomOffset = $settingsOverlayRect.Bottom - $settingsRect.Bottom
+    [BorderusSmokeNative]::MoveWindow($settings, 180, 160, $settingsRect.Right - $settingsRect.Left, $settingsRect.Bottom - $settingsRect.Top, $true) | Out-Null
+    $settingsMoveWatch = [Diagnostics.Stopwatch]::StartNew()
+    do {
+        Start-Sleep -Milliseconds 2
+        [BorderusSmokeNative]::GetWindowRect($settings, [ref]$settingsRect) | Out-Null
+        [BorderusSmokeNative]::GetWindowRect($settingsOverlay, [ref]$settingsOverlayRect) | Out-Null
+        $settingsAligned = $settingsOverlayRect.Left -eq ($settingsRect.Left - $settingsLeftOffset) -and
+            $settingsOverlayRect.Top -eq ($settingsRect.Top - $settingsTopOffset) -and
+            $settingsOverlayRect.Right -eq ($settingsRect.Right + $settingsRightOffset) -and
+            $settingsOverlayRect.Bottom -eq ($settingsRect.Bottom + $settingsBottomOffset)
+    } until ($settingsAligned -or $settingsMoveWatch.ElapsedMilliseconds -ge 250)
+    $settingsMoveWatch.Stop()
+    if (-not $settingsAligned) { throw 'Settings border did not follow the moved Settings window.' }
+
     $overlay = [IntPtr]::Zero
     $overlayDeadline = [DateTime]::UtcNow.AddSeconds(5)
     do {
@@ -75,23 +133,39 @@ try {
         [Math]::Abs($targetRect.Top - $overlayRect.Top) -le 50
     if (-not $firstFrameAligned) { throw 'Overlay became visible before receiving its target coordinates.' }
     $leftOffset = $targetRect.Left - $overlayRect.Left
+    $topOffset = $targetRect.Top - $overlayRect.Top
+    $rightOffset = $overlayRect.Right - $targetRect.Right
+    $bottomOffset = $overlayRect.Bottom - $targetRect.Bottom
 
     [BorderusSmokeNative]::NotifyWinEvent(0x000A, $target, 0, 0)
     Start-Sleep -Milliseconds 20
-    $watch = [Diagnostics.Stopwatch]::StartNew()
-    [BorderusSmokeNative]::MoveWindow($target, 320, 220, 720, 480, $true) | Out-Null
-    do {
-        Start-Sleep -Milliseconds 5
-        [BorderusSmokeNative]::GetWindowRect($target, [ref]$targetRect) | Out-Null
-        [BorderusSmokeNative]::GetWindowRect($overlay, [ref]$overlayRect) | Out-Null
-    } until ($overlayRect.Left -eq ($targetRect.Left - $leftOffset) -or $watch.ElapsedMilliseconds -ge 1000)
-    $watch.Stop()
-    [BorderusSmokeNative]::NotifyWinEvent(0x000B, $target, 0, 0)
-
-    if ($overlayRect.Left -ne ($targetRect.Left - $leftOffset)) {
-        throw "Border did not follow the moved window. target=$($targetRect.Left), overlay=$($overlayRect.Left), offset=$leftOffset, appExited=$($borderus.HasExited)"
+    $resizeSyncMaxMilliseconds = 0L
+    foreach ($geometry in @(
+        @(320, 220, 640, 420),
+        @(200, 220, 760, 420),
+        @(200, 120, 760, 520),
+        @(200, 120, 820, 560),
+        @(320, 220, 720, 480)
+    )) {
+        $watch = [Diagnostics.Stopwatch]::StartNew()
+        [BorderusSmokeNative]::MoveWindow($target, $geometry[0], $geometry[1], $geometry[2], $geometry[3], $true) | Out-Null
+        do {
+            Start-Sleep -Milliseconds 2
+            [BorderusSmokeNative]::GetWindowRect($target, [ref]$targetRect) | Out-Null
+            [BorderusSmokeNative]::GetWindowRect($overlay, [ref]$overlayRect) | Out-Null
+            $aligned = $overlayRect.Left -eq ($targetRect.Left - $leftOffset) -and
+                $overlayRect.Top -eq ($targetRect.Top - $topOffset) -and
+                $overlayRect.Right -eq ($targetRect.Right + $rightOffset) -and
+                $overlayRect.Bottom -eq ($targetRect.Bottom + $bottomOffset)
+        } until ($aligned -or $watch.ElapsedMilliseconds -ge 250)
+        $watch.Stop()
+        $resizeSyncMaxMilliseconds = [Math]::Max($resizeSyncMaxMilliseconds, $watch.ElapsedMilliseconds)
+        if (-not $aligned) {
+            throw "Border did not follow window resize. target=$($targetRect.Left),$($targetRect.Top),$($targetRect.Right),$($targetRect.Bottom) overlay=$($overlayRect.Left),$($overlayRect.Top),$($overlayRect.Right),$($overlayRect.Bottom)"
+        }
     }
-    $configPath = Join-Path (Split-Path -Parent $AppPath) 'settings.json'
+    [BorderusSmokeNative]::NotifyWinEvent(0x000B, $target, 0, 0)
+    $configPath = Join-Path $env:APPDATA 'Borderus\settings.json'
     $configDeadline = [DateTime]::UtcNow.AddSeconds(3)
     while (-not (Test-Path -LiteralPath $configPath) -and [DateTime]::UtcNow -lt $configDeadline) {
         Start-Sleep -Milliseconds 20
@@ -126,7 +200,7 @@ try {
         $null -eq $savedSettings.LayoutIndicator.ShowContainer -or
         $null -eq $savedSettings.LayoutIndicator.Content -or
         $null -eq $savedSettings.LayoutIndicator.Anchor -or
-        $null -eq $savedSettings.LayoutIndicator.Side -or
+        $null -eq $savedSettings.LayoutIndicator.DefaultSide -or
         $null -eq $savedSettings.LayoutIndicator.OffsetX -or
         $null -eq $savedSettings.LayoutIndicator.OffsetY) {
         throw 'Layout indicator settings were not saved.'
@@ -142,7 +216,9 @@ try {
         OverlayHasNoOwner = $overlayHasNoOwner
         OverlayDirectlyAboveTarget = $overlayDirectlyAboveTarget
         FirstFrameAligned = $firstFrameAligned
-        MoveSyncMilliseconds = $watch.ElapsedMilliseconds
+        SettingsOverlayDirectlyAboveTarget = $true
+        SettingsMoveSyncMilliseconds = $settingsMoveWatch.ElapsedMilliseconds
+        ResizeSyncMaxMilliseconds = $resizeSyncMaxMilliseconds
         ConfigNextToExecutable = $true
         IndependentProfiles = $true
         CloseCleanupMilliseconds = $closeWatch.ElapsedMilliseconds

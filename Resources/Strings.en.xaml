@@ -72,6 +72,8 @@
   <system:String x:Key="OffsetY">Y offset</system:String>
   <system:String x:Key="TabKeys">Keys</system:String>
   <system:String x:Key="Keyboard">Keyboard</system:String>
+  <system:String x:Key="CharacterKeys">Characters</system:String>
+  <system:String x:Key="NavigationKeys">Navigation and editing keys</system:String>
   <system:String x:Key="RepeatDelay">Delay before repeat starts</system:String>
   <system:String x:Key="ResetDelay">Reset: 250 ms</system:String>
   <system:String x:Key="RepeatRate">Speed after repeat starts</system:String>
@@ -93,8 +95,8 @@
   <system:String x:Key="GeneralSettings">General settings</system:String>
   <system:String x:Key="Language">Language</system:String>
   <system:String x:Key="LanguageDescription">Interface language changes immediately and is saved.</system:String>
-  <system:String x:Key="Russian">Russian</system:String>
-  <system:String x:Key="English">English</system:String>
+  <system:String x:Key="Russian">🇷🇺 Russian</system:String>
+  <system:String x:Key="English">🇺🇸 English</system:String>
   <system:String x:Key="StartWithWindows">Start with Windows</system:String>
   <system:String x:Key="StartupDescription">Starts Borderus at sign-in with the privileges required for administrator windows.</system:String>
   <system:String x:Key="ShowBordersInFullscreen">Show borders in full-screen mode</system:String>

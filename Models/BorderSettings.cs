@@ -20,6 +20,8 @@ public sealed class KeyboardSettings
     public bool SoundEnabled { get; set; } = true;
     public int RepeatDelayMs { get; set; } = 200;
     public int RepeatIntervalMs { get; set; } = 20;
+    public int NonCharacterRepeatDelayMs { get; set; } = 200;
+    public int NonCharacterRepeatIntervalMs { get; set; } = 20;
     public KeySound RussianSound { get; set; }
     public KeySound EnglishSound { get; set; }
     public string RussianSoundFile { get; set; } = string.Empty;
@@ -31,6 +33,8 @@ public sealed class KeyboardSettings
         SoundEnabled = SoundEnabled,
         RepeatDelayMs = RepeatDelayMs,
         RepeatIntervalMs = RepeatIntervalMs,
+        NonCharacterRepeatDelayMs = NonCharacterRepeatDelayMs,
+        NonCharacterRepeatIntervalMs = NonCharacterRepeatIntervalMs,
         RussianSound = RussianSound,
         EnglishSound = EnglishSound,
         RussianSoundFile = RussianSoundFile,

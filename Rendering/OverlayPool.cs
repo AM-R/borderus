@@ -12,7 +12,7 @@ internal sealed class OverlayPool : IDisposable
 {
     private readonly ConcurrentBag<BorderOverlay> _available = new();
     private int _inUse;
-    private int _maxSize;
+    private readonly int _maxSize;
     private bool _disposed;
 
     public OverlayPool(int maxSize = 128)
@@ -24,8 +24,6 @@ internal sealed class OverlayPool : IDisposable
     public BorderOverlay? Borrow(nint target)
     {
         if (_disposed) return null;
-        if (_inUse + _available.Count >= _maxSize) return null;
-
         if (_available.TryTake(out var overlay))
         {
             _inUse++;
@@ -33,6 +31,7 @@ internal sealed class OverlayPool : IDisposable
             return overlay;
         }
 
+        if (_inUse >= _maxSize) return null;
         _inUse++;
         return new BorderOverlay(target);
     }

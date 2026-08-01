@@ -233,6 +233,8 @@ public partial class MainWindow : Window
         LoadLayoutSideControls();
         RepeatDelaySlider.Value = Math.Clamp(_settings.Keyboard.RepeatDelayMs, 10, 1000);
         RepeatRateSlider.Value = Math.Clamp(_settings.Keyboard.RepeatIntervalMs, 5, 250);
+        NonCharacterRepeatDelaySlider.Value = Math.Clamp(_settings.Keyboard.NonCharacterRepeatDelayMs, 10, 1000);
+        NonCharacterRepeatRateSlider.Value = Math.Clamp(_settings.Keyboard.NonCharacterRepeatIntervalMs, 5, 250);
         SelectByTag(RussianSoundCombo, _settings.Keyboard.RussianSound.ToString());
         SelectByTag(EnglishSoundCombo, _settings.Keyboard.EnglishSound.ToString());
         ProfileCombo.SelectedIndex = 0;
@@ -334,6 +336,8 @@ public partial class MainWindow : Window
         else if (slider == LayoutOffsetYSlider) _settings.LayoutIndicator.OffsetY = slider.Value;
         else if (slider == RepeatDelaySlider) _settings.Keyboard.RepeatDelayMs = (int)slider.Value;
         else if (slider == RepeatRateSlider) _settings.Keyboard.RepeatIntervalMs = (int)slider.Value;
+        else if (slider == NonCharacterRepeatDelaySlider) _settings.Keyboard.NonCharacterRepeatDelayMs = (int)slider.Value;
+        else if (slider == NonCharacterRepeatRateSlider) _settings.Keyboard.NonCharacterRepeatIntervalMs = (int)slider.Value;
 
         UpdateSliderValueLabels();
         LayoutPreviewTransform.X = _settings.LayoutIndicator.OffsetX * 0.35;
@@ -403,6 +407,10 @@ public partial class MainWindow : Window
 
     private void ResetRepeatRate(object sender, RoutedEventArgs e) => RepeatRateSlider.Value = 25;
 
+    private void ResetNonCharacterRepeatDelay(object sender, RoutedEventArgs e) => NonCharacterRepeatDelaySlider.Value = 250;
+
+    private void ResetNonCharacterRepeatRate(object sender, RoutedEventArgs e) => NonCharacterRepeatRateSlider.Value = 25;
+
     private void ChooseRussianSound(object sender, RoutedEventArgs e) => ChooseKeyboardSound(true);
 
     private void ChooseEnglishSound(object sender, RoutedEventArgs e) => ChooseKeyboardSound(false);
@@ -460,6 +468,8 @@ public partial class MainWindow : Window
         _settings.Keyboard.SoundEnabled = SoundEnabledCheckBox.IsChecked == true;
         _settings.Keyboard.RepeatDelayMs = (int)RepeatDelaySlider.Value;
         _settings.Keyboard.RepeatIntervalMs = (int)RepeatRateSlider.Value;
+        _settings.Keyboard.NonCharacterRepeatDelayMs = (int)NonCharacterRepeatDelaySlider.Value;
+        _settings.Keyboard.NonCharacterRepeatIntervalMs = (int)NonCharacterRepeatRateSlider.Value;
         _settings.Keyboard.RussianSound = ReadTag(RussianSoundCombo, KeySound.None);
         _settings.Keyboard.EnglishSound = ReadTag(EnglishSoundCombo, KeySound.None);
         if (_enabledMenuItem is not null) _enabledMenuItem.Checked = _settings.Enabled;
@@ -491,6 +501,8 @@ public partial class MainWindow : Window
         string milliseconds = LocalizationService.Text("MillisecondsShort");
         RepeatDelayValue.Text = $"{_settings.Keyboard.RepeatDelayMs} {milliseconds}";
         RepeatRateValue.Text = $"{_settings.Keyboard.RepeatIntervalMs} {milliseconds}";
+        NonCharacterRepeatDelayValue.Text = $"{_settings.Keyboard.NonCharacterRepeatDelayMs} {milliseconds}";
+        NonCharacterRepeatRateValue.Text = $"{_settings.Keyboard.NonCharacterRepeatIntervalMs} {milliseconds}";
     }
 
     private void SideSettingChanged(object sender, RoutedEventArgs e)

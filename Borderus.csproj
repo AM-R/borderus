@@ -10,7 +10,7 @@
     <ApplicationIcon>assets\Borderus.ico</ApplicationIcon>
     <AssemblyName>Borderus</AssemblyName>
     <RootNamespace>Borderus</RootNamespace>
-    <Version>1.3.8</Version>
+    <Version>1.3.12</Version>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

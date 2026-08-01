@@ -22,9 +22,18 @@ internal static class SettingsStore
         {
             string json = File.ReadAllText(FilePath);
             BorderSettings settings = JsonSerializer.Deserialize<BorderSettings>(json) ?? new();
+            settings.Keyboard ??= new KeyboardSettings();
             using JsonDocument document = JsonDocument.Parse(json);
             if (!document.RootElement.TryGetProperty(nameof(BorderSettings.StartWithWindows), out _))
                 settings.StartWithWindows = StartupService.IsEnabled();
+            if (document.RootElement.TryGetProperty(nameof(BorderSettings.Keyboard), out JsonElement keyboard) &&
+                keyboard.ValueKind == JsonValueKind.Object)
+            {
+                if (!keyboard.TryGetProperty(nameof(KeyboardSettings.NonCharacterRepeatDelayMs), out _))
+                    settings.Keyboard.NonCharacterRepeatDelayMs = settings.Keyboard.RepeatDelayMs;
+                if (!keyboard.TryGetProperty(nameof(KeyboardSettings.NonCharacterRepeatIntervalMs), out _))
+                    settings.Keyboard.NonCharacterRepeatIntervalMs = settings.Keyboard.RepeatIntervalMs;
+            }
             return settings;
         }
         catch
