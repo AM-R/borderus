@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.3
+
+- Limited bold text to enabled feature tab headers and the Language/About tab headers.
+- Restored regular font weight for all text inside tab content blocks.
+
 ## 1.4.2
 
 - Added consistent disabled-card styling for flag, repeat-speed, sound, and motion settings.

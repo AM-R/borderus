@@ -618,10 +618,10 @@ public partial class MainWindow : Window
         SetCardState(LayoutCard, layoutEnabled);
         SetCardState(RepeatCard, repeatEnabled);
         SetCardState(SoundCard, soundEnabled);
-        SetFeatureTabState(BordersTab, bordersEnabled);
-        SetFeatureTabState(LayoutTab, layoutEnabled);
-        SetFeatureTabState(KeysTab, repeatEnabled);
-        SetFeatureTabState(SoundsTab, soundEnabled);
+        SetFeatureTabState(BordersTab, BordersTabHeader, bordersEnabled);
+        SetFeatureTabState(LayoutTab, LayoutTabHeader, layoutEnabled);
+        SetFeatureTabState(KeysTab, KeysTabHeader, repeatEnabled);
+        SetFeatureTabState(SoundsTab, SoundsTabHeader, soundEnabled);
         SetFeatureTextState(LayoutHeading, layoutEnabled);
         SetFeatureTextState(KeyboardHeading, repeatEnabled);
         SetFeatureTextState(SoundHeading, soundEnabled);
@@ -661,11 +661,11 @@ public partial class MainWindow : Window
     private static void SetFeatureTextState(TextBlock heading, bool enabled) =>
         heading.SetResourceReference(TextBlock.ForegroundProperty, enabled ? "TextBrush" : "DisabledTextBrush");
 
-    private static void SetFeatureTabState(TabItem tab, bool enabled)
+    private static void SetFeatureTabState(TabItem tab, TextBlock header, bool enabled)
     {
         tab.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty,
             enabled ? "TextBrush" : "SecondaryTextBrush");
-        tab.FontWeight = enabled ? FontWeights.Bold : FontWeights.Normal;
+        header.FontWeight = enabled ? FontWeights.Bold : FontWeights.Normal;
     }
 
     private void ChoosePrimaryColor(object sender, RoutedEventArgs e)

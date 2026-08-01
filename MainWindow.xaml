@@ -29,7 +29,8 @@
     </Grid>
 
     <TabControl Grid.Row="1" Margin="28,0,28,10">
-      <TabItem x:Name="BordersTab" Header="{DynamicResource TabBorders}">
+      <TabItem x:Name="BordersTab">
+        <TabItem.Header><TextBlock x:Name="BordersTabHeader" Text="{DynamicResource TabBorders}" /></TabItem.Header>
         <Grid Margin="12">
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
           <CheckBox x:Name="BordersEnabledCheckBox" Content="{DynamicResource EnableBorders}" Margin="0,0,0,12"
@@ -149,7 +150,8 @@
         </Grid>
       </TabItem>
 
-      <TabItem x:Name="LayoutTab" Header="{DynamicResource TabLayout}">
+      <TabItem x:Name="LayoutTab">
+        <TabItem.Header><TextBlock x:Name="LayoutTabHeader" Text="{DynamicResource TabLayout}" /></TabItem.Header>
         <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
           <CheckBox x:Name="LayoutIndicatorCheckBox" Grid.ColumnSpan="2" Content="{DynamicResource EnableFlag}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
           <Border x:Name="LayoutCard" Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="0,0,8,0">
@@ -197,7 +199,8 @@
           </Border>
         </Grid>
       </TabItem>
-      <TabItem x:Name="KeysTab" Header="{DynamicResource TabKeys}">
+      <TabItem x:Name="KeysTab">
+        <TabItem.Header><TextBlock x:Name="KeysTabHeader" Text="{DynamicResource TabKeys}" /></TabItem.Header>
         <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
           <CheckBox x:Name="RepeatEnabledCheckBox" Content="{DynamicResource EnableRepeat}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
         <Border x:Name="RepeatCard" Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
@@ -205,14 +208,14 @@
             <TextBlock x:Name="KeyboardHeading" Text="{DynamicResource Keyboard}" FontSize="20" Margin="0,0,0,16" />
             <Grid x:Name="RepeatOptions"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
               <StackPanel Margin="0,0,8,0">
-                <TextBlock Text="{DynamicResource CharacterKeys}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
+                <TextBlock Text="{DynamicResource CharacterKeys}" FontSize="14" Margin="0,0,0,10" />
                 <TextBlock Text="{DynamicResource RepeatDelay}" Foreground="{DynamicResource SecondaryTextBrush}" />
                 <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetDelay}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatDelay" /><Grid Grid.Column="1" VerticalAlignment="Center"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" Value="200" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                 <TextBlock Text="{DynamicResource RepeatRate}" Foreground="{DynamicResource SecondaryTextBrush}" />
                 <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetRate}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatRate" /><Grid Grid.Column="1" VerticalAlignment="Center"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" Value="20" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
               </StackPanel>
               <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                <TextBlock Text="{DynamicResource NavigationKeys}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
+                <TextBlock Text="{DynamicResource NavigationKeys}" FontSize="14" Margin="0,0,0,10" />
                 <TextBlock Text="{DynamicResource RepeatDelay}" Foreground="{DynamicResource SecondaryTextBrush}" />
                 <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetDelay}" Padding="9,3" Margin="0,0,10,0" Click="ResetNonCharacterRepeatDelay" /><Grid Grid.Column="1" VerticalAlignment="Center"><Slider x:Name="NonCharacterRepeatDelaySlider" Minimum="10" Maximum="1000" Value="200" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="NonCharacterRepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                 <TextBlock Text="{DynamicResource RepeatRate}" Foreground="{DynamicResource SecondaryTextBrush}" />
@@ -222,7 +225,8 @@
           </StackPanel>
         </Border></Grid>
       </TabItem>
-      <TabItem x:Name="SoundsTab" Header="{DynamicResource TabSounds}">
+      <TabItem x:Name="SoundsTab">
+        <TabItem.Header><TextBlock x:Name="SoundsTabHeader" Text="{DynamicResource TabSounds}" /></TabItem.Header>
         <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
           <CheckBox x:Name="SoundEnabledCheckBox" Content="{DynamicResource EnableSounds}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
         <Border x:Name="SoundCard" Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
@@ -244,7 +248,8 @@
           </StackPanel>
         </Border></Grid>
       </TabItem>
-      <TabItem Header="{DynamicResource Language}" FontWeight="Bold">
+      <TabItem>
+        <TabItem.Header><TextBlock Text="{DynamicResource Language}" FontWeight="Bold" /></TabItem.Header>
         <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="12">
           <StackPanel>
             <TextBlock Text="{DynamicResource Language}" FontSize="20" Margin="0,0,0,16" />
@@ -257,7 +262,8 @@
           </StackPanel>
         </Border>
       </TabItem>
-      <TabItem Header="{DynamicResource TabAbout}" FontWeight="Bold">
+      <TabItem>
+        <TabItem.Header><TextBlock Text="{DynamicResource TabAbout}" FontWeight="Bold" /></TabItem.Header>
         <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="12">
           <StackPanel>
             <TextBlock Text="{DynamicResource AboutTitle}" FontSize="24" Margin="0,0,0,10" />
