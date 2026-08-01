@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows.Automation;
@@ -86,7 +87,7 @@ internal sealed class LayoutIndicatorService : IDisposable
             }
 
             nint foreground = NativeMethods.GetForegroundWindow();
-            uint threadId = NativeMethods.GetWindowThreadProcessId(foreground, out _);
+            uint threadId = NativeMethods.GetWindowThreadProcessId(foreground, out uint processId);
             var info = new NativeMethods.GuiThreadInfo { Size = Marshal.SizeOf<NativeMethods.GuiThreadInfo>() };
             if (threadId == 0)
             {
@@ -148,7 +149,9 @@ internal sealed class LayoutIndicatorService : IDisposable
             double widthFactor = settings.Content == LayoutIndicatorContent.FlagOnly ? 1.45 : 1.75;
             int width = (int)Math.Ceiling(size * widthFactor * scale);
             int height = (int)Math.Ceiling(size * scale);
-            (int x, int y) = Position(anchorRect, width, height, scale, settings);
+            LayoutIndicatorHorizontalSide defaultSide = IsWebApplication(processId)
+                ? settings.WebSide : settings.DefaultSide;
+            (int x, int y) = Position(anchorRect, width, height, scale, settings, defaultSide);
             if (!hasCaret && settings.Anchor == LayoutIndicatorAnchor.Caret &&
                 NativeMethods.GetWindowRect(foreground, out var foregroundRect))
             {
@@ -186,14 +189,14 @@ internal sealed class LayoutIndicatorService : IDisposable
     });
 
     private static (int X, int Y) Position(NativeMethods.Rect anchor, int width, int height, double scale,
-        LayoutIndicatorSettings settings)
+        LayoutIndicatorSettings settings, LayoutIndicatorHorizontalSide horizontalSide)
     {
         int gap = (int)Math.Ceiling(6 * scale);
         int offsetX = (int)Math.Round(Math.Clamp(settings.OffsetX, -100, 100) * scale);
         int offsetY = (int)Math.Round(Math.Clamp(settings.OffsetY, -100, 100) * scale);
         int centerX = anchor.Left + (anchor.Width - width) / 2;
         int centerY = anchor.Top + (anchor.Height - height) / 2;
-        LayoutIndicatorSide defaultSide = settings.DefaultSide == LayoutIndicatorHorizontalSide.Left
+        LayoutIndicatorSide defaultSide = horizontalSide == LayoutIndicatorHorizontalSide.Left
             ? LayoutIndicatorSide.Left : LayoutIndicatorSide.Right;
         LayoutIndicatorSide side = settings.Side ?? defaultSide;
         return side switch
@@ -203,6 +206,23 @@ internal sealed class LayoutIndicatorService : IDisposable
             LayoutIndicatorSide.Left => (anchor.Left - width - gap + offsetX, centerY + offsetY),
             _ => (anchor.Right + gap + offsetX, centerY + offsetY)
         };
+    }
+
+    private static bool IsWebApplication(uint processId)
+    {
+        try
+        {
+            string name = Process.GetProcessById((int)processId).ProcessName;
+            return name.Equals("chrome", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("msedge", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("firefox", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("brave", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("opera", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("vivaldi", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException) { return false; }
+        catch (InvalidOperationException) { return false; }
+        catch (System.ComponentModel.Win32Exception) { return false; }
     }
 
     private static bool TryGetAutomationRects(out NativeMethods.Rect caretRect,

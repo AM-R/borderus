@@ -53,6 +53,7 @@ public sealed class LayoutIndicatorSettings
     public bool ShowContainer { get; set; }
     public LayoutIndicatorAnchor Anchor { get; set; } = LayoutIndicatorAnchor.Caret;
     public LayoutIndicatorHorizontalSide DefaultSide { get; set; } = LayoutIndicatorHorizontalSide.Right;
+    public LayoutIndicatorHorizontalSide WebSide { get; set; } = LayoutIndicatorHorizontalSide.Right;
     public LayoutIndicatorSide? Side { get; set; }
     public double OffsetX { get; set; } = 8;
     public double OffsetY { get; set; }
@@ -68,6 +69,7 @@ public sealed class LayoutIndicatorSettings
         ShowContainer = ShowContainer,
         Anchor = Anchor,
         DefaultSide = DefaultSide,
+        WebSide = WebSide,
         Side = Side,
         OffsetX = OffsetX,
         OffsetY = OffsetY

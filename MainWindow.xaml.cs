@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -139,9 +141,23 @@ public partial class MainWindow : Window
         return version is null ? string.Empty : $"v{version.Major}.{version.Minor}.{version.Build}";
     }
 
+    private static DateTime GetBuildDate()
+    {
+        string? value = typeof(MainWindow).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => attribute.Key == "BuildDate")?.Value;
+        return DateTime.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out DateTime date) ? date : new DateTime(2026, 8, 2);
+    }
+
     private void UpdateLocalizedText()
     {
-        AboutVersionText.Text = $"{LocalizationService.Text("VersionLabel")}: {GetVersionText()}";
+        CultureInfo culture = CultureInfo.GetCultureInfo(_settings.Language == "ru" ? "ru-RU" : "en-US");
+        DateTime buildDate = GetBuildDate();
+        string month = culture.TextInfo.ToTitleCase(culture.DateTimeFormat
+            .GetAbbreviatedMonthName(buildDate.Month).TrimEnd('.'));
+        string suffix = _settings.Language == "ru" ? "." : string.Empty;
+        AboutVersionText.Text = $"{LocalizationService.Text("VersionLabel")}: {GetVersionText()} " +
+            $"({buildDate:dd} {month}{suffix} {buildDate:yyyy})";
         if (_trayMenu is null) return;
         if (_openMenuItem is not null) _openMenuItem.Text = LocalizationService.Text("TrayOpen");
         if (_enabledMenuItem is not null) _enabledMenuItem.Text = LocalizationService.Text("EnableBorders");
@@ -230,6 +246,7 @@ public partial class MainWindow : Window
         SelectByTag(LayoutContentCombo, _settings.LayoutIndicator.Content.ToString());
         SelectByTag(LayoutAnchorCombo, _settings.LayoutIndicator.Anchor.ToString());
         SelectByTag(LayoutDefaultSideCombo, _settings.LayoutIndicator.DefaultSide.ToString());
+        SelectByTag(LayoutWebSideCombo, _settings.LayoutIndicator.WebSide.ToString());
         LoadLayoutSideControls();
         RepeatDelaySlider.Value = Math.Clamp(_settings.Keyboard.RepeatDelayMs, 10, 1000);
         RepeatRateSlider.Value = Math.Clamp(_settings.Keyboard.RepeatIntervalMs, 5, 250);
@@ -462,6 +479,7 @@ public partial class MainWindow : Window
         _settings.LayoutIndicator.InputMode = ReadTag(LayoutInputModeCombo, LayoutIndicatorInputMode.TextInputOnly);
         _settings.LayoutIndicator.Anchor = ReadTag(LayoutAnchorCombo, LayoutIndicatorAnchor.Caret);
         _settings.LayoutIndicator.DefaultSide = ReadTag(LayoutDefaultSideCombo, LayoutIndicatorHorizontalSide.Right);
+        _settings.LayoutIndicator.WebSide = ReadTag(LayoutWebSideCombo, LayoutIndicatorHorizontalSide.Right);
         _settings.LayoutIndicator.OffsetX = LayoutOffsetXSlider.Value;
         _settings.LayoutIndicator.OffsetY = LayoutOffsetYSlider.Value;
         _settings.Keyboard.RepeatEnabled = RepeatEnabledCheckBox.IsChecked == true;
@@ -590,10 +608,23 @@ public partial class MainWindow : Window
     private void UpdateConditionalControls()
     {
         bool bordersEnabled = EnabledCheckBox.IsChecked == true;
+        bool repeatEnabled = RepeatEnabledCheckBox.IsChecked == true;
+        bool soundEnabled = SoundEnabledCheckBox.IsChecked == true;
+        bool layoutEnabled = LayoutIndicatorCheckBox.IsChecked == true;
         SetOptionsState(BorderPreviewOptions, bordersEnabled);
         SetOptionsState(BorderAppearanceOptions, bordersEnabled);
-        SetOptionsState(RepeatOptions, RepeatEnabledCheckBox.IsChecked == true);
-        SetOptionsState(SoundOptions, SoundEnabledCheckBox.IsChecked == true);
+        SetOptionsState(RepeatOptions, repeatEnabled);
+        SetOptionsState(SoundOptions, soundEnabled);
+        SetCardState(LayoutCard, layoutEnabled);
+        SetCardState(RepeatCard, repeatEnabled);
+        SetCardState(SoundCard, soundEnabled);
+        SetFeatureTabState(BordersTab, bordersEnabled);
+        SetFeatureTabState(LayoutTab, layoutEnabled);
+        SetFeatureTabState(KeysTab, repeatEnabled);
+        SetFeatureTabState(SoundsTab, soundEnabled);
+        SetFeatureTextState(LayoutHeading, layoutEnabled);
+        SetFeatureTextState(KeyboardHeading, repeatEnabled);
+        SetFeatureTextState(SoundHeading, soundEnabled);
         SecondaryColorPanel.Visibility = ReadTag(FillStyleCombo, BorderFillStyle.Solid) == BorderFillStyle.AlongLine
             ? Visibility.Visible : Visibility.Collapsed;
         bool canAnimate = ReadTag(LineStyleCombo, BorderLineStyle.Solid) != BorderLineStyle.Solid;
@@ -604,11 +635,15 @@ public partial class MainWindow : Window
             || (canAnimateGradient && AnimateGradientCheckBox.IsChecked == true);
         AnimationOptions.IsEnabled = animationEnabled;
         SpeedOptions.Opacity = animationEnabled ? 1 : 0.45;
+        bool motionAvailable = bordersEnabled && (canAnimate || canAnimateGradient);
+        SetFeatureTextState(MotionHeading, motionAvailable);
+        SetCardState(MotionCard, motionAvailable);
         ActiveElevatedColorButton.IsEnabled = ActiveElevatedColorCheckBox.IsChecked == true;
         InactiveElevatedColorButton.IsEnabled = InactiveElevatedColorCheckBox.IsChecked == true;
-        bool layoutEnabled = LayoutIndicatorCheckBox.IsChecked == true;
         SetOptionsState(LayoutIndicatorOptions, layoutEnabled);
-        SetOptionsState(LayoutPositionOptions, layoutEnabled);
+        SetOptionsState(LayoutPositionContent, layoutEnabled);
+        SetFeatureTextState(LayoutPositionHeading, layoutEnabled);
+        SetCardState(LayoutPositionOptions, layoutEnabled);
         LayoutPreviewTransform.X = _settings.LayoutIndicator.OffsetX * 0.35;
         LayoutPreviewTransform.Y = _settings.LayoutIndicator.OffsetY * 0.35;
     }
@@ -617,6 +652,20 @@ public partial class MainWindow : Window
     {
         element.IsEnabled = enabled;
         element.Opacity = enabled ? 1 : 0.45;
+    }
+
+    private static void SetCardState(System.Windows.Controls.Border card, bool enabled) =>
+        card.SetResourceReference(System.Windows.Controls.Panel.BackgroundProperty,
+            enabled ? "CardBrush" : "DisabledCardBrush");
+
+    private static void SetFeatureTextState(TextBlock heading, bool enabled) =>
+        heading.SetResourceReference(TextBlock.ForegroundProperty, enabled ? "TextBrush" : "DisabledTextBrush");
+
+    private static void SetFeatureTabState(TabItem tab, bool enabled)
+    {
+        tab.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty,
+            enabled ? "TextBrush" : "SecondaryTextBrush");
+        tab.FontWeight = enabled ? FontWeights.Bold : FontWeights.Normal;
     }
 
     private void ChoosePrimaryColor(object sender, RoutedEventArgs e)

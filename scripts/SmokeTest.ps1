@@ -201,6 +201,7 @@ try {
         $null -eq $savedSettings.LayoutIndicator.Content -or
         $null -eq $savedSettings.LayoutIndicator.Anchor -or
         $null -eq $savedSettings.LayoutIndicator.DefaultSide -or
+        $null -eq $savedSettings.LayoutIndicator.WebSide -or
         $null -eq $savedSettings.LayoutIndicator.OffsetX -or
         $null -eq $savedSettings.LayoutIndicator.OffsetY) {
         throw 'Layout indicator settings were not saved.'

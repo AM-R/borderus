@@ -57,6 +57,7 @@
   <system:String x:Key="ShowContainer">Показывать контейнер</system:String>
   <system:String x:Key="Anchor">Привязка</system:String>
   <system:String x:Key="DefaultFlagSide">Размещение флага по умолчанию</system:String>
+  <system:String x:Key="DefaultWebFlagSide">Размещение флага по умолчанию для web-полей и приложений</system:String>
   <system:String x:Key="ToInputField">К полю ввода</system:String>
   <system:String x:Key="AlwaysToCaret">Всегда к каретке</system:String>
   <system:String x:Key="Size">Размер</system:String>
@@ -95,8 +96,9 @@
   <system:String x:Key="GeneralSettings">Общие настройки</system:String>
   <system:String x:Key="Language">Язык</system:String>
   <system:String x:Key="LanguageDescription">Язык интерфейса меняется сразу и сохраняется.</system:String>
-  <system:String x:Key="Russian">🇷🇺 Русский</system:String>
-  <system:String x:Key="English">🇺🇸 Английский</system:String>
+  <system:String x:Key="RussianCode">RU</system:String>
+  <system:String x:Key="Russian">Русский</system:String>
+  <system:String x:Key="English">Английский</system:String>
   <system:String x:Key="StartWithWindows">Запускать вместе с Windows</system:String>
   <system:String x:Key="StartupDescription">Запускает Borderus при входе в систему с правами для окон администратора.</system:String>
   <system:String x:Key="ShowBordersInFullscreen">Показывать рамки в полноэкранном режиме</system:String>

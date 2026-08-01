@@ -1,6 +1,7 @@
 <Window x:Class="Borderus.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rendering="clr-namespace:Borderus.Rendering"
         Title="Borderus" Icon="assets/Borderus.ico" Width="900" SizeToContent="Height"
         ResizeMode="NoResize" Background="{DynamicResource PageBrush}"
         WindowStartupLocation="CenterScreen" FontFamily="Segoe UI" Foreground="{DynamicResource TextBrush}" UseLayoutRounding="True">
@@ -28,7 +29,7 @@
     </Grid>
 
     <TabControl Grid.Row="1" Margin="28,0,28,10">
-      <TabItem Header="{DynamicResource TabBorders}">
+      <TabItem x:Name="BordersTab" Header="{DynamicResource TabBorders}">
         <Grid Margin="12">
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
           <CheckBox x:Name="BordersEnabledCheckBox" Content="{DynamicResource EnableBorders}" Margin="0,0,0,12"
@@ -116,9 +117,9 @@
               </StackPanel>
             </Border>
             <StackPanel Grid.Column="1" Margin="8,0,0,0">
-            <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="18" Margin="0,0,0,12">
+            <Border x:Name="MotionCard" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="18" Margin="0,0,0,12">
               <StackPanel>
-                <TextBlock Text="{DynamicResource Motion}" FontSize="18" Margin="0,0,0,14" />
+                <TextBlock x:Name="MotionHeading" Text="{DynamicResource Motion}" FontSize="18" Margin="0,0,0,14" />
                 <CheckBox x:Name="AnimateCheckBox" Content="{DynamicResource AnimateDash}" Checked="SettingChanged" Unchecked="SettingChanged" />
                 <CheckBox x:Name="AnimateGradientCheckBox" Content="{DynamicResource AnimateGradient}" Margin="0,8,0,0" Checked="SettingChanged" Unchecked="SettingChanged" />
                 <Grid x:Name="AnimationOptions" Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -148,12 +149,12 @@
         </Grid>
       </TabItem>
 
-      <TabItem Header="{DynamicResource TabLayout}">
+      <TabItem x:Name="LayoutTab" Header="{DynamicResource TabLayout}">
         <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
           <CheckBox x:Name="LayoutIndicatorCheckBox" Grid.ColumnSpan="2" Content="{DynamicResource EnableFlag}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
-          <Border Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="0,0,8,0">
+          <Border x:Name="LayoutCard" Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="0,0,8,0">
             <StackPanel>
-              <TextBlock Text="{DynamicResource TabLayout}" FontSize="20" Margin="0,0,0,16" />
+              <TextBlock x:Name="LayoutHeading" Text="{DynamicResource TabLayout}" FontSize="20" Margin="0,0,0,16" />
               <StackPanel x:Name="LayoutIndicatorOptions">
                 <TextBlock Text="{DynamicResource IndicatorScope}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
                 <ComboBox x:Name="LayoutInputModeCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel" Margin="0,0,0,12"><ComboBoxItem Content="{DynamicResource Everywhere}" Tag="Everywhere" /><ComboBoxItem Content="{DynamicResource TextInputOnly}" Tag="TextInputOnly" /></ComboBox>
@@ -164,6 +165,8 @@
                 <ComboBox x:Name="LayoutAnchorCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource ToInputField}" Tag="Field" /><ComboBoxItem Content="{DynamicResource AlwaysToCaret}" Tag="Caret" /></ComboBox>
                 <TextBlock Text="{DynamicResource DefaultFlagSide}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,14,0,4" />
                 <ComboBox x:Name="LayoutDefaultSideCombo" SelectionChanged="DefaultLayoutSideChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource Right}" Tag="Right" /><ComboBoxItem Content="{DynamicResource Left}" Tag="Left" /></ComboBox>
+                <TextBlock Text="{DynamicResource DefaultWebFlagSide}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,14,0,4" />
+                <ComboBox x:Name="LayoutWebSideCombo" SelectionChanged="SettingChanged" PreviewMouseWheel="ComboBoxMouseWheel"><ComboBoxItem Content="{DynamicResource Right}" Tag="Right" /><ComboBoxItem Content="{DynamicResource Left}" Tag="Left" /></ComboBox>
                 <Grid Margin="0,16,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                   <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource Size}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutSizeSlider" Minimum="10" Maximum="80" Value="20" TickFrequency="2" IsSnapToTickEnabled="True" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="14.29*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="85.71*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutSizeValue" Grid.Column="1" Text="20" HorizontalAlignment="Right" /></Grid></StackPanel>
                   <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource Opacity}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="48" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutOpacitySlider" Minimum="0.2" Maximum="1" Value="0.75" TickFrequency="0.05" IsSnapToTickEnabled="True" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="68.75*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="31.25*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutOpacityValue" Grid.Column="1" Text="75%" HorizontalAlignment="Right" /></Grid></StackPanel>
@@ -173,14 +176,15 @@
           </Border>
           <Border x:Name="LayoutPositionOptions" Grid.Row="1" Grid.Column="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="8,0,0,0">
             <StackPanel>
-              <TextBlock Text="{DynamicResource Positioning}" FontSize="20" Margin="0,0,0,10" />
+              <TextBlock x:Name="LayoutPositionHeading" Text="{DynamicResource Positioning}" FontSize="20" Margin="0,0,0,10" />
+              <StackPanel x:Name="LayoutPositionContent">
               <TextBlock Text="{DynamicResource PositioningDescription}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" />
               <Grid x:Name="LayoutSideSelector" Width="280" Height="170" Margin="0,18,0,12">
                 <Grid.RowDefinitions><RowDefinition Height="34" /><RowDefinition /><RowDefinition Height="34" /></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions>
                 <CheckBox x:Name="LayoutTopCheckBox" Grid.Column="1" HorizontalAlignment="Center" Tag="Top" ToolTip="{DynamicResource Above}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
                 <CheckBox x:Name="LayoutLeftCheckBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Left" ToolTip="{DynamicResource Left}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
-                <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource PreviewBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"><StackPanel VerticalAlignment="Center"><TextBlock Text="{DynamicResource InputField}" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" /><Border x:Name="LayoutPreviewIndicator" Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource DisabledTextBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5" HorizontalAlignment="Center" Margin="0,8,0,0" Cursor="SizeAll" MouseLeftButtonDown="LayoutPreviewMouseDown" MouseMove="LayoutPreviewMouseMove" MouseLeftButtonUp="LayoutPreviewMouseUp"><Border.RenderTransform><TranslateTransform x:Name="LayoutPreviewTransform" /></Border.RenderTransform><TextBlock Text="🇷🇺 RU" /></Border></StackPanel></Border>
+                <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource PreviewBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"><StackPanel VerticalAlignment="Center"><TextBlock Text="{DynamicResource InputField}" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" /><Border x:Name="LayoutPreviewIndicator" Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource DisabledTextBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5" HorizontalAlignment="Center" Margin="0,8,0,0" Cursor="SizeAll" MouseLeftButtonDown="LayoutPreviewMouseDown" MouseMove="LayoutPreviewMouseMove" MouseLeftButtonUp="LayoutPreviewMouseUp"><Border.RenderTransform><TranslateTransform x:Name="LayoutPreviewTransform" /></Border.RenderTransform><StackPanel Orientation="Horizontal"><rendering:CountryFlag Region="RU" Width="18" Height="12" Margin="0,0,5,0" VerticalAlignment="Center" SnapsToDevicePixels="True" /><TextBlock Text="{DynamicResource RussianCode}" /></StackPanel></Border></StackPanel></Border>
                 <CheckBox x:Name="LayoutRightCheckBox" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Tag="Right" ToolTip="{DynamicResource Right}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
                 <CheckBox x:Name="LayoutBottomCheckBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Tag="Bottom" ToolTip="{DynamicResource Below}" Checked="LayoutSideChanged" Unchecked="LayoutSideChanged" />
               </Grid>
@@ -188,41 +192,42 @@
                 <StackPanel Margin="0,0,8,0"><TextBlock Text="{DynamicResource OffsetX}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutOffsetXSlider" Minimum="-100" Maximum="100" Value="8" TickFrequency="1" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="54*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="46*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutOffsetXValue" Grid.Column="1" Text="8" HorizontalAlignment="Right" /></Grid></StackPanel>
                 <StackPanel Grid.Column="1" Margin="8,0,0,0"><TextBlock Text="{DynamicResource OffsetY}" FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" /><Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Grid><Slider x:Name="LayoutOffsetYSlider" Minimum="-100" Maximum="100" Value="0" TickFrequency="1" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="50*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="50*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="LayoutOffsetYValue" Grid.Column="1" Text="0" HorizontalAlignment="Right" /></Grid></StackPanel>
               </Grid>
+              </StackPanel>
             </StackPanel>
           </Border>
         </Grid>
       </TabItem>
-      <TabItem Header="{DynamicResource TabKeys}">
+      <TabItem x:Name="KeysTab" Header="{DynamicResource TabKeys}">
         <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
           <CheckBox x:Name="RepeatEnabledCheckBox" Content="{DynamicResource EnableRepeat}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
-        <Border Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
+        <Border x:Name="RepeatCard" Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
           <StackPanel>
-            <TextBlock Text="{DynamicResource Keyboard}" FontSize="20" Margin="0,0,0,16" />
+            <TextBlock x:Name="KeyboardHeading" Text="{DynamicResource Keyboard}" FontSize="20" Margin="0,0,0,16" />
             <Grid x:Name="RepeatOptions"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
               <StackPanel Margin="0,0,8,0">
                 <TextBlock Text="{DynamicResource CharacterKeys}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
                 <TextBlock Text="{DynamicResource RepeatDelay}" Foreground="{DynamicResource SecondaryTextBrush}" />
-                <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetDelay}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatDelay" /><Grid Grid.Column="1"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" Value="200" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetDelay}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatDelay" /><Grid Grid.Column="1" VerticalAlignment="Center"><Slider x:Name="RepeatDelaySlider" Minimum="10" Maximum="1000" Value="200" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                 <TextBlock Text="{DynamicResource RepeatRate}" Foreground="{DynamicResource SecondaryTextBrush}" />
-                <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetRate}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatRate" /><Grid Grid.Column="1"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" Value="20" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetRate}" Padding="9,3" Margin="0,0,10,0" Click="ResetRepeatRate" /><Grid Grid.Column="1" VerticalAlignment="Center"><Slider x:Name="RepeatRateSlider" Minimum="5" Maximum="250" Value="20" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="RepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
               </StackPanel>
               <StackPanel Grid.Column="1" Margin="8,0,0,0">
                 <TextBlock Text="{DynamicResource NavigationKeys}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
                 <TextBlock Text="{DynamicResource RepeatDelay}" Foreground="{DynamicResource SecondaryTextBrush}" />
-                <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetDelay}" Padding="9,3" Margin="0,0,10,0" Click="ResetNonCharacterRepeatDelay" /><Grid Grid.Column="1"><Slider x:Name="NonCharacterRepeatDelaySlider" Minimum="10" Maximum="1000" Value="200" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="NonCharacterRepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                <Grid Margin="0,4,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetDelay}" Padding="9,3" Margin="0,0,10,0" Click="ResetNonCharacterRepeatDelay" /><Grid Grid.Column="1" VerticalAlignment="Center"><Slider x:Name="NonCharacterRepeatDelaySlider" Minimum="10" Maximum="1000" Value="200" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="24.24*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="75.76*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="NonCharacterRepeatDelayValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                 <TextBlock Text="{DynamicResource RepeatRate}" Foreground="{DynamicResource SecondaryTextBrush}" />
-                <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetRate}" Padding="9,3" Margin="0,0,10,0" Click="ResetNonCharacterRepeatRate" /><Grid Grid.Column="1"><Slider x:Name="NonCharacterRepeatRateSlider" Minimum="5" Maximum="250" Value="20" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="NonCharacterRepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                <Grid Margin="0,4,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions><Button Content="↺" ToolTip="{DynamicResource ResetRate}" Padding="9,3" Margin="0,0,10,0" Click="ResetNonCharacterRepeatRate" /><Grid Grid.Column="1" VerticalAlignment="Center"><Slider x:Name="NonCharacterRepeatRateSlider" Minimum="5" Maximum="250" Value="20" ValueChanged="SliderValueChanged" /><Grid IsHitTestVisible="False" Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="8.16*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="91.84*" /></Grid.ColumnDefinitions><Border Grid.Column="1" Width="1" Height="13" Background="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" /></Grid></Grid><TextBlock x:Name="NonCharacterRepeatRateValue" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
               </StackPanel>
             </Grid>
           </StackPanel>
         </Border></Grid>
       </TabItem>
-      <TabItem Header="{DynamicResource TabSounds}">
+      <TabItem x:Name="SoundsTab" Header="{DynamicResource TabSounds}">
         <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
           <CheckBox x:Name="SoundEnabledCheckBox" Content="{DynamicResource EnableSounds}" IsChecked="True" Margin="0,0,0,12" Checked="SettingChanged" Unchecked="SettingChanged" />
-        <Border Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
+        <Border x:Name="SoundCard" Grid.Row="1" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22">
           <StackPanel>
-            <TextBlock Text="{DynamicResource KeySounds}" FontSize="20" Margin="0,0,0,16" />
+            <TextBlock x:Name="SoundHeading" Text="{DynamicResource KeySounds}" FontSize="20" Margin="0,0,0,16" />
             <StackPanel x:Name="SoundOptions">
             <TextBlock Text="{DynamicResource SoundDescription}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
             <TextBlock Text="{DynamicResource RussianLayout}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
@@ -239,20 +244,20 @@
           </StackPanel>
         </Border></Grid>
       </TabItem>
-      <TabItem Header="{DynamicResource Language}">
+      <TabItem Header="{DynamicResource Language}" FontWeight="Bold">
         <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="12">
           <StackPanel>
             <TextBlock Text="{DynamicResource Language}" FontSize="20" Margin="0,0,0,16" />
             <TextBlock Text="{DynamicResource Language}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
-            <ComboBox x:Name="LanguageCombo" SelectionChanged="LanguageChanged" Width="260" HorizontalAlignment="Left">
-              <ComboBoxItem Content="{DynamicResource Russian}" Tag="ru" />
-              <ComboBoxItem Content="{DynamicResource English}" Tag="en" />
+            <ComboBox x:Name="LanguageCombo" SelectionChanged="LanguageChanged" Width="260" HorizontalAlignment="Left" HorizontalContentAlignment="Left">
+              <ComboBoxItem Tag="ru"><StackPanel Orientation="Horizontal"><rendering:CountryFlag Region="RU" Width="21" Height="14" Margin="0,0,8,0" VerticalAlignment="Center" SnapsToDevicePixels="True" /><TextBlock Text="{DynamicResource Russian}" /></StackPanel></ComboBoxItem>
+              <ComboBoxItem Tag="en"><StackPanel Orientation="Horizontal"><rendering:CountryFlag Region="US" Width="21" Height="14" Margin="0,0,8,0" VerticalAlignment="Center" SnapsToDevicePixels="True" /><TextBlock Text="{DynamicResource English}" /></StackPanel></ComboBoxItem>
             </ComboBox>
             <TextBlock Text="{DynamicResource LanguageDescription}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,7,0,0" />
           </StackPanel>
         </Border>
       </TabItem>
-      <TabItem Header="{DynamicResource TabAbout}">
+      <TabItem Header="{DynamicResource TabAbout}" FontWeight="Bold">
         <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" Padding="22" Margin="12">
           <StackPanel>
             <TextBlock Text="{DynamicResource AboutTitle}" FontSize="24" Margin="0,0,0,10" />

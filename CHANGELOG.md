@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.2
+
+- Added consistent disabled-card styling for flag, repeat-speed, sound, and motion settings.
+- Added feature-aware tab-title emphasis and persistent emphasis for Language and About.
+- Added localized build dates and a separate left/right default for web fields and browser apps.
+
+## 1.4.1
+
+- Added graphical flags to the language picker and layout preview.
+- Added separate repeat speeds for character and navigation/editing keys.
+- Moved key-sound playback off the character-repeat timing path.
+
 ## 1.2.13
 
 - Added independent signed border spacing for active and inactive windows.
