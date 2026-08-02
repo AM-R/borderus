@@ -135,7 +135,7 @@ public partial class MainWindow : Window
         var icon = new Forms.NotifyIcon
         {
             Icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!) ?? SystemIcons.Application,
-            Text = LocalizationService.Text("TrayText"),
+            Text = $"Border {GetVersionText().TrimStart('v')}",
             Visible = true,
             ContextMenuStrip = menu
         };
@@ -175,7 +175,7 @@ public partial class MainWindow : Window
         if (_layoutMenuItem is not null) _layoutMenuItem.Text = LocalizationService.Text("EnableFlag");
         if (_startupMenuItem is not null) _startupMenuItem.Text = LocalizationService.Text("EnableStartup");
         if (_exitMenuItem is not null) _exitMenuItem.Text = LocalizationService.Text("TrayExit");
-        _trayIcon.Text = LocalizationService.Text("TrayText");
+        _trayIcon.Text = $"Border {GetVersionText().TrimStart('v')}";
     }
 
     private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)

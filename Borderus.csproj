@@ -10,11 +10,11 @@
     <ApplicationIcon>assets\Borderus.ico</ApplicationIcon>
     <AssemblyName>Borderus</AssemblyName>
     <RootNamespace>Borderus</RootNamespace>
-    <Version>1.4.5</Version>
-    <InformationalVersion>1.4.5</InformationalVersion>
+    <Version>1.4.6</Version>
+    <InformationalVersion>1.4.6</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <AssemblyVersion>1.4.5.0</AssemblyVersion>
-    <FileVersion>1.4.5.0</FileVersion>
+    <AssemblyVersion>1.4.6.0</AssemblyVersion>
+    <FileVersion>1.4.6.0</FileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -29,7 +29,7 @@
     <Resource Include="assets\Borderus.ico" />
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>BuildDate</_Parameter1>
-      <_Parameter2>2026-08-02</_Parameter2>
+      <_Parameter2>2026-08-03</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 </Project>
