@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.5
+
+- Restored 8 ms high-priority tracking so borders stay attached during window moves and resizes.
+- Removed an extra full-frame allocation and pixel copy from resize rendering.
+
 ## 1.4.4
 
 - Added a global Enabled master switch that preserves individual feature choices.

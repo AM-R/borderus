@@ -126,8 +126,8 @@ internal sealed class BorderOverlay : NativeWindow, IDisposable
 
         var bitmap = new RenderTargetBitmap(width, height, 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bitmap.Render(visual);
-        var pixels = new byte[width * height * 4];
-        bitmap.CopyPixels(pixels, width * 4, 0);
+        int stride = width * 4;
+        int bufferSize = stride * height;
 
         var bitmapInfo = new NativeMethods.BitmapInfo
         {
@@ -139,7 +139,7 @@ internal sealed class BorderOverlay : NativeWindow, IDisposable
                 Planes = 1,
                 BitCount = 32,
                 Compression = NativeMethods.BiRgb,
-                SizeImage = (uint)pixels.Length
+                SizeImage = (uint)bufferSize
             }
         };
         nint sourceDc = NativeMethods.CreateCompatibleDC(0);
@@ -152,7 +152,7 @@ internal sealed class BorderOverlay : NativeWindow, IDisposable
             if (sourceDc != 0) NativeMethods.DeleteDC(sourceDc);
             return false;
         }
-        Marshal.Copy(pixels, 0, bits, pixels.Length);
+        bitmap.CopyPixels(new System.Windows.Int32Rect(0, 0, width, height), bits, bufferSize, stride);
 
         nint oldBitmap = NativeMethods.SelectObject(sourceDc, bitmapHandle);
         try

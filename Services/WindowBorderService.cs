@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Windows.Media;
 using System.Windows.Threading;
 using Borderus.Models;
 using Borderus.Native;
@@ -16,6 +15,7 @@ internal sealed class WindowBorderService : IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly DispatcherTimer _reconcileTimer;
     private readonly DispatcherTimer _animationTimer;
+    private readonly DispatcherTimer _moveTimer;
     private readonly NativeMethods.WinEventProc _eventCallback;
     private readonly uint _ownProcessId = (uint)Environment.ProcessId;
     private readonly nint[] _eventHooks = new nint[4];
@@ -44,6 +44,9 @@ internal sealed class WindowBorderService : IDisposable
         _eventHooks[3] = NativeMethods.SetWinEventHook(NativeMethods.EventSystemMoveSizeStart,
             NativeMethods.EventSystemMoveSizeEnd, 0, _eventCallback, 0, 0, flags);
 
+        _moveTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(8), DispatcherPriority.Send,
+            (_, _) => PositionMovingWindow(), _dispatcher);
+        _moveTimer.Stop();
         _reconcileTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(750), DispatcherPriority.Background,
             (_, _) => ReconcileWindows(), _dispatcher);
         _animationTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(35), DispatcherPriority.Render,
@@ -116,22 +119,20 @@ internal sealed class WindowBorderService : IDisposable
             return;
         }
 
-        if (hWnd != _movingWindow)
-            _dispatcher.BeginInvoke(DispatcherPriority.Render, () => PositionWindow(hWnd));
+        _dispatcher.BeginInvoke(DispatcherPriority.Send, () => PositionWindow(hWnd));
     }
 
     private void StartMovingWindow(nint hWnd)
     {
         if (_disposed) return;
         _movingWindow = hWnd;
-        CompositionTarget.Rendering -= PositionMovingWindow;
-        CompositionTarget.Rendering += PositionMovingWindow;
+        _moveTimer.Start();
         PositionWindow(hWnd);
     }
 
     private void StopMovingWindow(nint hWnd)
     {
-        CompositionTarget.Rendering -= PositionMovingWindow;
+        _moveTimer.Stop();
         _movingWindow = 0;
         if (NativeMethods.TryGetFrameBounds(hWnd, out var rect) &&
             NativeMethods.GetWindowRect(hWnd, out var windowRect))
@@ -140,7 +141,7 @@ internal sealed class WindowBorderService : IDisposable
         PositionWindow(hWnd);
     }
 
-    private void PositionMovingWindow(object? sender, EventArgs e)
+    private void PositionMovingWindow()
     {
         nint hWnd = _movingWindow;
         if (hWnd != 0) PositionWindow(hWnd);
@@ -305,7 +306,7 @@ internal sealed class WindowBorderService : IDisposable
     public void Dispose()
     {
         _disposed = true;
-        CompositionTarget.Rendering -= PositionMovingWindow;
+        _moveTimer.Stop();
         _reconcileTimer.Stop();
         _animationTimer.Stop();
         foreach (nint hook in _eventHooks)
