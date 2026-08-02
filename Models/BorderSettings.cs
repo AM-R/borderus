@@ -130,6 +130,7 @@ public sealed class BorderProfile
 public sealed class BorderSettings
 {
     public bool Enabled { get; set; } = true;
+    public bool BordersEnabled { get; set; } = true;
     public bool ShowInFullscreen { get; set; }
     public bool StartWithWindows { get; set; } = true;
     public string Language { get; set; } = "ru";
@@ -146,6 +147,7 @@ public sealed class BorderSettings
     public BorderSettings Copy() => new()
     {
         Enabled = Enabled,
+        BordersEnabled = BordersEnabled,
         ShowInFullscreen = ShowInFullscreen,
         StartWithWindows = StartWithWindows,
         Language = Language,

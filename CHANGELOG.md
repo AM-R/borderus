@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.4
+
+- Added a global Enabled master switch that preserves individual feature choices.
+- Added global runtime state to the tray menu and disabled feature commands when it is off.
+- Kept the settings-window border above the window while tray popups open and close.
+
 ## 1.4.3
 
 - Limited bold text to enabled feature tab headers and the Language/About tab headers.

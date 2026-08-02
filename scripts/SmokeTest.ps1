@@ -193,6 +193,7 @@ try {
             throw 'Visible-side settings were not saved for both profiles.'
         }
     }
+    if ($null -eq $savedSettings.BordersEnabled) { throw 'Border feature state was not saved.' }
     if ($null -eq $savedSettings.LayoutIndicator -or
         $null -eq $savedSettings.LayoutIndicator.Enabled -or
         $null -eq $savedSettings.LayoutIndicator.Size -or

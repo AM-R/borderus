@@ -20,11 +20,13 @@ internal sealed class KeyboardService : IDisposable
     private nint _hook;
     private int _heldKey;
     private int _soundQueued;
+    private volatile bool _enabled;
     private volatile bool _disposed;
 
     public KeyboardService(BorderSettings settings)
     {
         _settings = settings.Keyboard.Copy();
+        _enabled = settings.Enabled;
         _keyboardCallback = OnKeyboardEvent;
         _hook = NativeMethods.SetWindowsHookEx(NativeMethods.WhKeyboardLl, _keyboardCallback, 0, 0);
     }
@@ -33,14 +35,16 @@ internal sealed class KeyboardService : IDisposable
     {
         KeyboardSettings keyboard = settings.Keyboard.Copy();
         Volatile.Write(ref _settings, keyboard);
-        if (keyboard.RepeatEnabled) return;
+        _enabled = settings.Enabled;
+        if (keyboard.RepeatEnabled && _enabled) return;
         Interlocked.Exchange(ref _heldKey, 0);
+        lock (_pressedKeys) _pressedKeys.Clear();
         StopRepeat();
     }
 
     public void Preview(KeySound sound, string? customFile = null)
     {
-        if (!Volatile.Read(ref _settings).SoundEnabled || sound == KeySound.None) return;
+        if (!_enabled || !Volatile.Read(ref _settings).SoundEnabled || sound == KeySound.None) return;
         lock (_soundLock)
         {
             if (!_disposed) Play(sound, customFile);
@@ -49,7 +53,7 @@ internal sealed class KeyboardService : IDisposable
 
     private nint OnKeyboardEvent(int code, nint message, nint data)
     {
-        if (_disposed || code < 0) return NativeMethods.CallNextHookEx(_hook, code, message, data);
+        if (_disposed || !_enabled || code < 0) return NativeMethods.CallNextHookEx(_hook, code, message, data);
         NativeMethods.LowLevelKeyboardInput input = Marshal.PtrToStructure<NativeMethods.LowLevelKeyboardInput>(data);
         if (input.ExtraInfo == SyntheticMarker)
             return NativeMethods.CallNextHookEx(_hook, code, message, data);
@@ -58,9 +62,13 @@ internal sealed class KeyboardService : IDisposable
         bool keyDown = message == NativeMethods.WmKeyDown || message == NativeMethods.WmSysKeyDown;
         bool keyUp = message == NativeMethods.WmKeyUp || message == NativeMethods.WmSysKeyUp;
         KeyboardSettings settings = Volatile.Read(ref _settings);
-        bool firstKeyDown = keyDown && _pressedKeys.Add(key);
-        if (keyUp) _pressedKeys.Remove(key);
-        if (firstKeyDown) TrackStandaloneConsoleLayoutSwitch(key);
+        bool firstKeyDown;
+        lock (_pressedKeys)
+        {
+            firstKeyDown = keyDown && _pressedKeys.Add(key);
+            if (keyUp) _pressedKeys.Remove(key);
+            if (firstKeyDown) TrackStandaloneConsoleLayoutSwitch(key);
+        }
 
         if (settings.RepeatEnabled && IsRepeatableKey(key) && keyDown && !IsSystemShortcut())
         {
@@ -125,7 +133,7 @@ internal sealed class KeyboardService : IDisposable
 
     private void QueueCurrentLayoutSound()
     {
-        if (!Volatile.Read(ref _settings).SoundEnabled || Interlocked.Exchange(ref _soundQueued, 1) != 0) return;
+        if (!_enabled || !Volatile.Read(ref _settings).SoundEnabled || Interlocked.Exchange(ref _soundQueued, 1) != 0) return;
         _ = Task.Run(() =>
         {
             try
@@ -133,7 +141,7 @@ internal sealed class KeyboardService : IDisposable
                 lock (_soundLock)
                 {
                     KeyboardSettings settings = Volatile.Read(ref _settings);
-                    if (!_disposed && settings.SoundEnabled) PlayCurrentLayoutSound(settings);
+                    if (!_disposed && _enabled && settings.SoundEnabled) PlayCurrentLayoutSound(settings);
                 }
             }
             finally

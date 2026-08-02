@@ -25,6 +25,7 @@ internal sealed class WindowBorderService : IDisposable
     private double _activeDashOffset;
     private double _inactiveDashOffset;
     private bool _disposed;
+    private bool BordersAreEnabled => _settings.Enabled && _settings.BordersEnabled;
 
     public WindowBorderService(Dispatcher dispatcher, BorderSettings settings)
     {
@@ -54,10 +55,10 @@ internal sealed class WindowBorderService : IDisposable
 
     public void Apply(BorderSettings settings)
     {
-        bool wasEnabled = _settings.Enabled;
+        bool wasEnabled = BordersAreEnabled;
         bool fullscreenVisibilityChanged = _settings.ShowInFullscreen != settings.ShowInFullscreen;
         _settings = settings.Copy();
-        if (!_settings.Enabled)
+        if (!BordersAreEnabled)
         {
             HideAll();
             return;
@@ -77,7 +78,14 @@ internal sealed class WindowBorderService : IDisposable
 
     private void OnWinEvent(nint hook, uint eventType, nint hWnd, int objectId, int childId, uint eventThread, uint eventTime)
     {
-        if (_disposed || hWnd == 0 || IsOwnToolWindow(hWnd)) return;
+        if (_disposed || hWnd == 0) return;
+        if (IsOwnToolWindow(hWnd))
+        {
+            if (objectId == NativeMethods.ObjidWindow &&
+                eventType is NativeMethods.EventObjectShow or NativeMethods.EventObjectHide)
+                _dispatcher.BeginInvoke(DispatcherPriority.Send, RestoreOwnWindowOverlayZOrder);
+            return;
+        }
 
         if (eventType == NativeMethods.EventSystemForeground)
         {
@@ -140,7 +148,7 @@ internal sealed class WindowBorderService : IDisposable
 
     private void PositionWindow(nint hWnd)
     {
-        if (!_settings.Enabled || !_overlays.TryGetValue(hWnd, out var overlay)) return;
+        if (!BordersAreEnabled || !_overlays.TryGetValue(hWnd, out var overlay)) return;
         double padding = GetPadding(hWnd);
         if (_frameOffsets.TryGetValue(hWnd, out var offsets) && NativeMethods.GetWindowRect(hWnd, out var rect))
         {
@@ -183,7 +191,7 @@ internal sealed class WindowBorderService : IDisposable
 
     private void ReconcileWindows()
     {
-        if (!_settings.Enabled || _disposed) return;
+        if (!BordersAreEnabled || _disposed) return;
 
         var found = new HashSet<nint>();
         NativeMethods.EnumWindows((hWnd, _) =>
@@ -236,9 +244,19 @@ internal sealed class WindowBorderService : IDisposable
             (NativeMethods.GetWindowLongPtr(hWnd, NativeMethods.GwlExStyle).ToInt64() & NativeMethods.WsExToolWindow) != 0;
     }
 
+    private void RestoreOwnWindowOverlayZOrder()
+    {
+        if (!BordersAreEnabled) return;
+        foreach (nint hWnd in _overlays.Keys)
+        {
+            NativeMethods.GetWindowThreadProcessId(hWnd, out uint processId);
+            if (processId == _ownProcessId) PositionWindow(hWnd);
+        }
+    }
+
     private void Animate(object? sender, EventArgs e)
     {
-        if (!_settings.Enabled) return;
+        if (!BordersAreEnabled) return;
         AdvanceAnimation(_settings.Active, ref _activeDashOffset);
         AdvanceAnimation(_settings.Inactive, ref _inactiveDashOffset);
         foreach (var pair in _overlays)

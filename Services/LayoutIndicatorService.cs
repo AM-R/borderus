@@ -27,7 +27,7 @@ internal sealed class LayoutIndicatorService : IDisposable
     public LayoutIndicatorService(Dispatcher dispatcher, BorderSettings settings)
     {
         _dispatcher = dispatcher;
-        _settings = settings.LayoutIndicator.Copy();
+        _settings = EffectiveSettings(settings);
         _eventCallback = OnWinEvent;
         uint flags = NativeMethods.WineventOutOfContext | NativeMethods.WineventSkipOwnProcess;
         _hooks[0] = NativeMethods.SetWinEventHook(NativeMethods.EventObjectFocus,
@@ -47,9 +47,16 @@ internal sealed class LayoutIndicatorService : IDisposable
 
     public void Apply(BorderSettings settings)
     {
-        _settings = settings.LayoutIndicator.Copy();
+        _settings = EffectiveSettings(settings);
         if (!_settings.Enabled) _overlay.HideImmediately();
         else QueueRefresh();
+    }
+
+    private static LayoutIndicatorSettings EffectiveSettings(BorderSettings settings)
+    {
+        LayoutIndicatorSettings effective = settings.LayoutIndicator.Copy();
+        effective.Enabled = settings.Enabled && effective.Enabled;
+        return effective;
     }
 
     private void OnWinEvent(nint hook, uint eventType, nint hWnd, int objectId, int childId,

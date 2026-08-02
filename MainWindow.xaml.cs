@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private readonly BorderRenderer _inactivePreviewRenderer = new();
     private Forms.ToolStripMenuItem? _openMenuItem;
     private Forms.ToolStripMenuItem? _enabledMenuItem;
+    private Forms.ToolStripMenuItem? _bordersMenuItem;
     private Forms.ToolStripMenuItem? _soundMenuItem;
     private Forms.ToolStripMenuItem? _repeatMenuItem;
     private Forms.ToolStripMenuItem? _layoutMenuItem;
@@ -90,31 +91,38 @@ public partial class MainWindow : Window
         ApplyTrayMenuTheme();
         _openMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("TrayOpen"), null, (_, _) => ShowFromTray());
         menu.Items.Add(_openMenuItem);
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        _enabledMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableBorders"), null, (_, _) => ToggleEnabled())
+        _enabledMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("Enabled"), null, (_, _) => ToggleEnabled())
         {
             Checked = _settings.Enabled,
             CheckOnClick = false
         };
         menu.Items.Add(_enabledMenuItem);
-        _soundMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableSounds"), null, (_, _) => ToggleSound())
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        _bordersMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableBorders"), null, (_, _) => ToggleBorders())
         {
-            Checked = _settings.Keyboard.SoundEnabled,
+            Checked = _settings.BordersEnabled,
             CheckOnClick = false
         };
-        menu.Items.Add(_soundMenuItem);
-        _repeatMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableRepeat"), null, (_, _) => ToggleRepeat())
-        {
-            Checked = _settings.Keyboard.RepeatEnabled,
-            CheckOnClick = false
-        };
-        menu.Items.Add(_repeatMenuItem);
+        menu.Items.Add(_bordersMenuItem);
         _layoutMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableFlag"), null, (_, _) => ToggleLayoutIndicator())
         {
             Checked = _settings.LayoutIndicator.Enabled,
             CheckOnClick = false
         };
         menu.Items.Add(_layoutMenuItem);
+        _repeatMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableRepeat"), null, (_, _) => ToggleRepeat())
+        {
+            Checked = _settings.Keyboard.RepeatEnabled,
+            CheckOnClick = false
+        };
+        menu.Items.Add(_repeatMenuItem);
+        _soundMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableSounds"), null, (_, _) => ToggleSound())
+        {
+            Checked = _settings.Keyboard.SoundEnabled,
+            CheckOnClick = false
+        };
+        menu.Items.Add(_soundMenuItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
         _startupMenuItem = new Forms.ToolStripMenuItem(LocalizationService.Text("EnableStartup"), null, (_, _) => ToggleStartup())
         {
             Checked = _settings.StartWithWindows,
@@ -160,7 +168,8 @@ public partial class MainWindow : Window
             $"({buildDate:dd} {month}{suffix} {buildDate:yyyy})";
         if (_trayMenu is null) return;
         if (_openMenuItem is not null) _openMenuItem.Text = LocalizationService.Text("TrayOpen");
-        if (_enabledMenuItem is not null) _enabledMenuItem.Text = LocalizationService.Text("EnableBorders");
+        if (_enabledMenuItem is not null) _enabledMenuItem.Text = LocalizationService.Text("Enabled");
+        if (_bordersMenuItem is not null) _bordersMenuItem.Text = LocalizationService.Text("EnableBorders");
         if (_soundMenuItem is not null) _soundMenuItem.Text = LocalizationService.Text("EnableSounds");
         if (_repeatMenuItem is not null) _repeatMenuItem.Text = LocalizationService.Text("EnableRepeat");
         if (_layoutMenuItem is not null) _layoutMenuItem.Text = LocalizationService.Text("EnableFlag");
@@ -228,7 +237,7 @@ public partial class MainWindow : Window
     private void LoadControls()
     {
         EnabledCheckBox.IsChecked = _settings.Enabled;
-        BordersEnabledCheckBox.IsChecked = _settings.Enabled;
+        BordersEnabledCheckBox.IsChecked = _settings.BordersEnabled;
         ShowInFullscreenCheckBox.IsChecked = _settings.ShowInFullscreen;
         SelectByTag(LanguageCombo, _settings.Language);
         StartupCheckBox.IsChecked = _settings.StartWithWindows;
@@ -330,13 +339,7 @@ public partial class MainWindow : Window
 
     private void BorderEnabledChanged(object sender, RoutedEventArgs e)
     {
-        if (_loading || sender is not System.Windows.Controls.CheckBox checkBox) return;
-        bool enabled = checkBox.IsChecked == true;
-        _loading = true;
-        EnabledCheckBox.IsChecked = enabled;
-        BordersEnabledCheckBox.IsChecked = enabled;
-        _loading = false;
-        ApplySettings();
+        if (!_loading) ApplySettings();
     }
 
     private void SliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -460,6 +463,7 @@ public partial class MainWindow : Window
         _sliderApplyTimer.Stop();
         _sliderChangesPending = false;
         _settings.Enabled = EnabledCheckBox.IsChecked == true;
+        _settings.BordersEnabled = BordersEnabledCheckBox.IsChecked == true;
         _settings.ShowInFullscreen = ShowInFullscreenCheckBox.IsChecked == true;
         BorderProfile profile = CurrentProfile;
         profile.Thickness = ThicknessSlider.Value;
@@ -491,9 +495,26 @@ public partial class MainWindow : Window
         _settings.Keyboard.RussianSound = ReadTag(RussianSoundCombo, KeySound.None);
         _settings.Keyboard.EnglishSound = ReadTag(EnglishSoundCombo, KeySound.None);
         if (_enabledMenuItem is not null) _enabledMenuItem.Checked = _settings.Enabled;
-        if (_soundMenuItem is not null) _soundMenuItem.Checked = _settings.Keyboard.SoundEnabled;
-        if (_repeatMenuItem is not null) _repeatMenuItem.Checked = _settings.Keyboard.RepeatEnabled;
-        if (_layoutMenuItem is not null) _layoutMenuItem.Checked = _settings.LayoutIndicator.Enabled;
+        if (_bordersMenuItem is not null)
+        {
+            _bordersMenuItem.Checked = _settings.BordersEnabled;
+            _bordersMenuItem.Enabled = _settings.Enabled;
+        }
+        if (_soundMenuItem is not null)
+        {
+            _soundMenuItem.Checked = _settings.Keyboard.SoundEnabled;
+            _soundMenuItem.Enabled = _settings.Enabled;
+        }
+        if (_repeatMenuItem is not null)
+        {
+            _repeatMenuItem.Checked = _settings.Keyboard.RepeatEnabled;
+            _repeatMenuItem.Enabled = _settings.Enabled;
+        }
+        if (_layoutMenuItem is not null)
+        {
+            _layoutMenuItem.Checked = _settings.LayoutIndicator.Enabled;
+            _layoutMenuItem.Enabled = _settings.Enabled;
+        }
         if (_startupMenuItem is not null) _startupMenuItem.Checked = _settings.StartWithWindows;
         UpdateSliderValueLabels();
         UpdateConditionalControls();
@@ -607,7 +628,7 @@ public partial class MainWindow : Window
 
     private void UpdateConditionalControls()
     {
-        bool bordersEnabled = EnabledCheckBox.IsChecked == true;
+        bool bordersEnabled = BordersEnabledCheckBox.IsChecked == true;
         bool repeatEnabled = RepeatEnabledCheckBox.IsChecked == true;
         bool soundEnabled = SoundEnabledCheckBox.IsChecked == true;
         bool layoutEnabled = LayoutIndicatorCheckBox.IsChecked == true;
@@ -733,6 +754,9 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() => EnabledCheckBox.IsChecked = !(EnabledCheckBox.IsChecked == true));
     }
+
+    private void ToggleBorders() => Dispatcher.Invoke(() =>
+        BordersEnabledCheckBox.IsChecked = !(BordersEnabledCheckBox.IsChecked == true));
 
     private void ToggleSound() => Dispatcher.Invoke(() =>
         SoundEnabledCheckBox.IsChecked = !(SoundEnabledCheckBox.IsChecked == true));

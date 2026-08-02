@@ -24,6 +24,8 @@ internal static class SettingsStore
             BorderSettings settings = JsonSerializer.Deserialize<BorderSettings>(json) ?? new();
             settings.Keyboard ??= new KeyboardSettings();
             using JsonDocument document = JsonDocument.Parse(json);
+            if (!document.RootElement.TryGetProperty(nameof(BorderSettings.BordersEnabled), out _))
+                settings.BordersEnabled = settings.Enabled;
             if (!document.RootElement.TryGetProperty(nameof(BorderSettings.StartWithWindows), out _))
                 settings.StartWithWindows = StartupService.IsEnabled();
             if (document.RootElement.TryGetProperty(nameof(BorderSettings.Keyboard), out JsonElement keyboard) &&
