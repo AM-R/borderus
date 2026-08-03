@@ -24,3 +24,4 @@ desktop.ini
 *.zip
 .zcode/
 builds/
+graphify-out/
