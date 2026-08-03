@@ -12,6 +12,7 @@ internal sealed class WindowBorderService : IDisposable
     private readonly OverlayPool _pool;
     private readonly ConcurrentDictionary<nint, FrameOffsets> _frameOffsets = new();
     private readonly ConcurrentDictionary<nint, bool> _elevatedWindows = new();
+    private readonly ConcurrentDictionary<nint, byte> _pendingPositions = new();
     private readonly Dispatcher _dispatcher;
     private readonly DispatcherTimer _reconcileTimer;
     private readonly DispatcherTimer _animationTimer;
@@ -107,10 +108,20 @@ internal sealed class WindowBorderService : IDisposable
         }
 
         if (objectId != NativeMethods.ObjidWindow) return;
-        if (eventType is NativeMethods.EventObjectDestroy or NativeMethods.EventObjectHide)
+        if (eventType == NativeMethods.EventObjectDestroy)
         {
             if (_overlays.TryGetValue(hWnd, out var overlay)) overlay.HideImmediately();
             _dispatcher.BeginInvoke(DispatcherPriority.Send, () => RemoveOverlay(hWnd));
+            return;
+        }
+        if (eventType == NativeMethods.EventObjectHide)
+        {
+            if (_overlays.TryGetValue(hWnd, out var overlay)) overlay.HideImmediately();
+            _dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+            {
+                if (!NativeMethods.IsWindow(hWnd) || !ShouldTrack(hWnd)) RemoveOverlay(hWnd);
+                else QueuePosition(hWnd);
+            });
             return;
         }
         if (eventType == NativeMethods.EventObjectShow)
@@ -119,12 +130,12 @@ internal sealed class WindowBorderService : IDisposable
             return;
         }
 
-        _dispatcher.BeginInvoke(DispatcherPriority.Send, () => PositionWindow(hWnd));
+        if (hWnd != _movingWindow) QueuePosition(hWnd);
     }
 
     private void StartMovingWindow(nint hWnd)
     {
-        if (_disposed) return;
+        if (_disposed || !_overlays.ContainsKey(hWnd)) return;
         _movingWindow = hWnd;
         _moveTimer.Start();
         PositionWindow(hWnd);
@@ -132,6 +143,7 @@ internal sealed class WindowBorderService : IDisposable
 
     private void StopMovingWindow(nint hWnd)
     {
+        if (hWnd != _movingWindow) return;
         _moveTimer.Stop();
         _movingWindow = 0;
         if (NativeMethods.TryGetFrameBounds(hWnd, out var rect) &&
@@ -145,6 +157,16 @@ internal sealed class WindowBorderService : IDisposable
     {
         nint hWnd = _movingWindow;
         if (hWnd != 0) PositionWindow(hWnd);
+    }
+
+    private void QueuePosition(nint hWnd)
+    {
+        if (!_pendingPositions.TryAdd(hWnd, 0)) return;
+        _dispatcher.BeginInvoke(DispatcherPriority.Render, () =>
+        {
+            _pendingPositions.TryRemove(hWnd, out _);
+            PositionWindow(hWnd);
+        });
     }
 
     private void PositionWindow(nint hWnd)
@@ -216,7 +238,6 @@ internal sealed class WindowBorderService : IDisposable
                 bool active = hWnd == _foregroundWindow;
                 overlay.Render(_settings, GetDashOffset(active), active, IsElevated(hWnd));
                 overlay.Position(rect, GetPadding(hWnd));
-                overlay.ShowPrepared();
             }
             if (moving) PositionWindow(hWnd);
             else overlay.Position(rect, GetPadding(hWnd));
@@ -292,6 +313,12 @@ internal sealed class WindowBorderService : IDisposable
 
     private void RemoveOverlay(nint hWnd)
     {
+        _pendingPositions.TryRemove(hWnd, out _);
+        if (hWnd == _movingWindow)
+        {
+            _moveTimer.Stop();
+            _movingWindow = 0;
+        }
         _frameOffsets.TryRemove(hWnd, out _);
         _elevatedWindows.TryRemove(hWnd, out _);
         if (_overlays.TryRemove(hWnd, out var overlay))

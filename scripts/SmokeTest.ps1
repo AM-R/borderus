@@ -140,12 +140,16 @@ try {
     [BorderusSmokeNative]::NotifyWinEvent(0x000A, $target, 0, 0)
     Start-Sleep -Milliseconds 20
     $resizeSyncMaxMilliseconds = 0L
+    $visibilityMaintainedDuringResize = $true
     foreach ($geometry in @(
         @(320, 220, 640, 420),
         @(200, 220, 760, 420),
         @(200, 120, 760, 520),
         @(200, 120, 820, 560),
-        @(320, 220, 720, 480)
+        @(320, 220, 720, 480),
+        @(240, 180, 680, 460),
+        @(360, 260, 760, 500),
+        @(180, 140, 820, 540)
     )) {
         $watch = [Diagnostics.Stopwatch]::StartNew()
         [BorderusSmokeNative]::MoveWindow($target, $geometry[0], $geometry[1], $geometry[2], $geometry[3], $true) | Out-Null
@@ -153,6 +157,9 @@ try {
             Start-Sleep -Milliseconds 2
             [BorderusSmokeNative]::GetWindowRect($target, [ref]$targetRect) | Out-Null
             [BorderusSmokeNative]::GetWindowRect($overlay, [ref]$overlayRect) | Out-Null
+            $visibilityMaintainedDuringResize = $visibilityMaintainedDuringResize -and
+                [BorderusSmokeNative]::IsWindowVisible($overlay) -and
+                ([BorderusSmokeNative]::GetWindow($target, 3) -eq $overlay)
             $aligned = $overlayRect.Left -eq ($targetRect.Left - $leftOffset) -and
                 $overlayRect.Top -eq ($targetRect.Top - $topOffset) -and
                 $overlayRect.Right -eq ($targetRect.Right + $rightOffset) -and
@@ -165,6 +172,9 @@ try {
         }
     }
     [BorderusSmokeNative]::NotifyWinEvent(0x000B, $target, 0, 0)
+    if (-not $visibilityMaintainedDuringResize) {
+        throw 'Border became hidden or moved behind its target during repeated resize updates.'
+    }
     $configPath = Join-Path $env:APPDATA 'Borderus\settings.json'
     $configDeadline = [DateTime]::UtcNow.AddSeconds(3)
     while (-not (Test-Path -LiteralPath $configPath) -and [DateTime]::UtcNow -lt $configDeadline) {
@@ -221,6 +231,7 @@ try {
         SettingsOverlayDirectlyAboveTarget = $true
         SettingsMoveSyncMilliseconds = $settingsMoveWatch.ElapsedMilliseconds
         ResizeSyncMaxMilliseconds = $resizeSyncMaxMilliseconds
+        VisibilityMaintainedDuringResize = $visibilityMaintainedDuringResize
         ConfigNextToExecutable = $true
         IndependentProfiles = $true
         CloseCleanupMilliseconds = $closeWatch.ElapsedMilliseconds

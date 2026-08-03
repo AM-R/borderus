@@ -67,8 +67,7 @@ internal sealed class BorderOverlay : NativeWindow, IDisposable
         int height = rect.Height + pad * 2;
         if (width < 2 || height < 2) return;
 
-        nint windowAboveTarget = NativeMethods.GetWindow(_target, NativeMethods.GwHwndPrev);
-        bool sizeChanged = !_positioned || width != _lastWidth || height != _lastHeight;
+        bool sizeChanged = !_positioned || !_shown || width != _lastWidth || height != _lastHeight;
         if (sizeChanged || _visualDirty)
         {
             if (!Present(x, y, width, height)) return;
@@ -77,18 +76,9 @@ internal sealed class BorderOverlay : NativeWindow, IDisposable
         }
         else if (x != _lastX || y != _lastY)
         {
-            uint flags = NativeMethods.SwpNoActivate | NativeMethods.SwpNoOwnerZOrder |
-                NativeMethods.SwpNoSize | NativeMethods.SwpNoCopyBits;
-            if (windowAboveTarget == Handle) flags |= NativeMethods.SwpNoZOrder;
-            if (!NativeMethods.SetWindowPos(Handle, windowAboveTarget, x, y, 0, 0, flags)) return;
+            if (!PlaceAboveTarget(x, y, NativeMethods.SwpNoSize | NativeMethods.SwpNoCopyBits)) return;
         }
-        else if (windowAboveTarget != Handle)
-        {
-            uint flags = NativeMethods.SwpNoActivate | NativeMethods.SwpNoOwnerZOrder |
-                NativeMethods.SwpNoMove | NativeMethods.SwpNoSize;
-            if (!NativeMethods.SetWindowPos(Handle, windowAboveTarget, 0, 0, 0, 0, flags)) return;
-        }
-        else
+        else if (!PlaceAboveTarget(0, 0, NativeMethods.SwpNoMove | NativeMethods.SwpNoSize))
         {
             return;
         }
@@ -106,7 +96,7 @@ internal sealed class BorderOverlay : NativeWindow, IDisposable
         _dashOffset = dashOffset;
         _elevated = elevated;
         _visualDirty = true;
-        if (_positioned) Present(_lastX, _lastY, _lastWidth, _lastHeight);
+        if (_positioned && Present(_lastX, _lastY, _lastWidth, _lastHeight)) _visualDirty = false;
     }
 
     public void Close() => Dispose();
@@ -176,11 +166,21 @@ internal sealed class BorderOverlay : NativeWindow, IDisposable
             NativeMethods.DeleteDC(sourceDc);
         }
 
-        nint windowAboveTarget = NativeMethods.GetWindow(_target, NativeMethods.GwHwndPrev);
-        if (windowAboveTarget != Handle)
-            NativeMethods.SetWindowPos(Handle, windowAboveTarget, 0, 0, 0, 0,
-                NativeMethods.SwpNoActivate | NativeMethods.SwpNoOwnerZOrder |
-                NativeMethods.SwpNoMove | NativeMethods.SwpNoSize);
+        PlaceAboveTarget(0, 0, NativeMethods.SwpNoMove | NativeMethods.SwpNoSize);
         return true;
+    }
+
+    private bool PlaceAboveTarget(int x, int y, uint flags)
+    {
+        nint windowAboveTarget = NativeMethods.GetWindow(_target, NativeMethods.GwHwndPrev);
+        uint positionFlags = NativeMethods.SwpNoActivate | NativeMethods.SwpNoOwnerZOrder | flags;
+        if (windowAboveTarget == Handle)
+        {
+            if ((flags & (NativeMethods.SwpNoMove | NativeMethods.SwpNoSize)) ==
+                (NativeMethods.SwpNoMove | NativeMethods.SwpNoSize)) return true;
+            return NativeMethods.SetWindowPos(Handle, 0, x, y, 0, 0,
+                positionFlags | NativeMethods.SwpNoZOrder);
+        }
+        return NativeMethods.SetWindowPos(Handle, windowAboveTarget, x, y, 0, 0, positionFlags);
     }
 }
